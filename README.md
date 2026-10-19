@@ -51,6 +51,14 @@ The detailed editor is preserved at [`/studio`](http://127.0.0.1:3000/studio) fo
 
 **9:16 social** produces portrait H3 jobs and 1080 × 1920 MP4 exports. **16:9 widescreen** produces landscape jobs and 1920 × 1080 exports. Format is saved on each render job, and export reuse is keyed by format as well as shot choices. Existing takes are preserved; footage with a different shape is fitted and padded. No title card or logo is inserted by default.
 
+## Broader web discovery with Exa
+
+Set `EXA_API_KEY` in the server environment to enable `search_web_references` for the director and trend scout. Social scope searches indexed X, TikTok, Instagram and YouTube pages; web scope searches campaign sites and case studies. Exa results appear under **Across the web** as research links with source dates when available. They are not watched videos, verified view counts or viral recommendations. Historical inspiration can use a wider date window and must be described as historical.
+
+TwitterAPI.io remains responsible for live X discovery and X metadata/video retrieval. Its existing >100K-view and visual-inspection requirements still control the verified video shortlist. Exa does not add Instagram or YouTube downloaders or remove TikTok extraction requirements. Unsupported or blocked sources need a user-supplied clip. The connected Exa app in a coding assistant is separate from the API key needed by a deployed studio.
+
+All provider credentials stay in server environment variables. The browser receives configured/not-configured status and short-lived restricted Blob upload tokens, never provider API keys or the master Blob token. Keep the hosted instance protected; authorized operators can initiate paid provider work.
+
 ## Your brand assets
 
 Start with an empty campaign. Attach your own product art and logos, and describe how to use them in the same prompt. The director registers those images with `set_brand_assets`, inspects them with `get_brand_assets`, and can send the actual images as H3 references. Brand images stay separate from source footage and evidence. Files are never classified using a preloaded brand fingerprint.

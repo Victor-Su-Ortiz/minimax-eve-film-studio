@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { MAX_CAMPAIGN_REFERENCES } from "./reference-limits";
 import type { SocialPost, TrendSearch } from "./social-types";
+import type { WebResearchSearch } from "./web-search-types";
 import type {
   CampaignAnalysis,
   CampaignBrief,
@@ -201,6 +202,7 @@ export type Project = {
   campaign?: CampaignBrief;
   campaignAnalyses?: CampaignAnalysis[];
   campaignInspections?: CampaignInspection[];
+  webResearch?: WebResearchSearch[];
   socialPosts?: SocialPost[];
   trendSearches?: TrendSearch[];
   requests?: {

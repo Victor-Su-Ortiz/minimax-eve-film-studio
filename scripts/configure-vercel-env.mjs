@@ -6,11 +6,29 @@ const local = parseEnv(readFileSync(".env.local", "utf8"));
 const hosted = parseEnv(readFileSync(".env.deploy.local", "utf8"));
 const test = parseEnv(readFileSync(".env.neon-test.local", "utf8"));
 const project = JSON.parse(readFileSync(".vercel/project.json", "utf8"));
-const metadata=JSON.parse(execFileSync("vercel",["api",`/v9/projects/${project.projectId}`,"--scope",project.orgId,"--raw"],{encoding:"utf8",stdio:["ignore","pipe","pipe"]}));
-if(metadata.ssoProtection?.deploymentType!=="all") throw new Error("Enable Vercel Authentication for all deployments before configuring hosted access.");
-const stableHost = hosted.STUDIO_HOST || metadata.targets?.production?.alias?.[0];
+const metadata = JSON.parse(
+  execFileSync(
+    "vercel",
+    [
+      "api",
+      `/v9/projects/${project.projectId}`,
+      "--scope",
+      project.orgId,
+      "--raw",
+    ],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  ),
+);
+if (metadata.ssoProtection?.deploymentType !== "all")
+  throw new Error(
+    "Enable Vercel Authentication for all deployments before configuring hosted access.",
+  );
+const stableHost =
+  hosted.STUDIO_HOST || metadata.targets?.production?.alias?.[0];
 if (!stableHost)
-  throw new Error("Set STUDIO_HOST in .env.deploy.local to the production domain shown in Vercel's project settings.");
+  throw new Error(
+    "Set STUDIO_HOST in .env.deploy.local to the production domain shown in Vercel's project settings.",
+  );
 const names = [
   "MINIMAX_TEXT_API_KEY",
   "MINIMAX_TEXT_BASE_URL",
@@ -19,6 +37,7 @@ const names = [
   "MINIMAX_VIDEO_BASE_URL",
   "MINIMAX_VIDEO_MODEL",
   "TWITTERAPI_IO_API_KEY",
+  "EXA_API_KEY",
   "BLOB_READ_WRITE_TOKEN",
 ];
 const common = {

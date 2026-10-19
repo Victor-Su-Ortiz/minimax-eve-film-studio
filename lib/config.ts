@@ -41,6 +41,9 @@ export function videoKey() {
 export function trendKey() {
   return runtimeEnv("TWITTERAPI_IO_API_KEY");
 }
+export function exaKey() {
+  return runtimeEnv("EXA_API_KEY");
+}
 export function modelId() {
   return process.env.MINIMAX_TEXT_MODEL || "MiniMax-M3.1-Flash-Preview";
 }

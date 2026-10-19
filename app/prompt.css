@@ -1464,3 +1464,12 @@
 .nl-trend-visual-match summary {
   cursor: pointer;
 }
+
+.nl-web-search { margin: 18px 0; }
+.nl-web-search > p { color: #b5b5b5; font-size: 13px; }
+.nl-web-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.nl-web-results article { min-width: 0; padding: 16px; border: 1px solid #303030; border-radius: 14px; background: #141414; }
+.nl-web-results small { display: block; color: #969696; font-size: 11px; }
+.nl-web-results a { display: block; color: #ededed; text-decoration: none; margin: 10px 0; overflow-wrap: anywhere; }
+.nl-web-results a:hover { text-decoration: underline; }
+.nl-web-results p { color: #b5b5b5; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }

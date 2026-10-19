@@ -1,7 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getProject } from "../../lib/store";
-import { textKey, videoKey, trendKey } from "../../lib/config";
+import { textKey, videoKey, trendKey, exaKey } from "../../lib/config";
 
 export default defineTool({
   description:
@@ -16,6 +16,7 @@ export default defineTool({
       textConfigured: Boolean(textKey()),
       videoConfigured: Boolean(videoKey()),
       trendSearchConfigured: Boolean(trendKey()),
+      webSearchConfigured: Boolean(exaKey()),
       note: "Presence in this agent runtime only; API entitlement is verified by actual requests. Keys are never returned.",
     },
   }),

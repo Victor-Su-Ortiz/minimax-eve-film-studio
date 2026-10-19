@@ -30,7 +30,7 @@ node --env-file=.env.deploy.local scripts/migrate.mjs
 
 You can also configure variables in Vercel's dashboard instead of using the helper. Hosted mode needs `DATABASE_URL`, private Blob credentials, `STUDIO_STORAGE=cloud`, and the explicitly verified deployment-protection flag, alongside your MiniMax credentials. Set `STUDIO_HOST` to your exact stable production hostname, including any team suffix. Deployment-specific hostnames are also recognized automatically.
 
-Keep credentials server-side. This template does not accept visitors' API keys through a browser form. TwitterAPI.io is required for X search and X URL imports; it is optional for direct file uploads. Each deployer supplies their own key. Public TikTok URL extraction uses yt-dlp and needs that executable plus its runtime on the host; the local setup script alone does not provision it inside a Vercel function. Direct video uploads work independently of that extractor.
+Keep credentials server-side. This template does not accept visitors' API keys through a browser form. TwitterAPI.io is required for X search and X URL imports; it is optional for direct file uploads. Each deployer supplies their own key. Optional `EXA_API_KEY` enables broader public-web research; it does not verify engagement or add video importers. Public TikTok URL extraction uses yt-dlp and needs that executable plus its runtime on the host; the local setup script alone does not provision it inside a Vercel function. Direct video uploads work independently of that extractor.
 
 ## Stage, verify, and release
 

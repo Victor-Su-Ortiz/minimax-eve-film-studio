@@ -31,6 +31,7 @@ import {
 import { TrendGallery } from "./trend-gallery";
 import { DirectorText } from "./director-text";
 import { FilmCrew } from "./film-crew";
+import { WebResearch } from "./web-research";
 import { sendWithSessionRecovery } from "@/lib/session-recovery";
 import { MAX_CAMPAIGN_REFERENCES } from "@/lib/reference-limits";
 import { uploadStudioFile } from "@/lib/upload-client";
@@ -523,6 +524,7 @@ function PromptWorkspace({
             )}
 
             <FilmCrew conversation={agent.data} />
+            <WebResearch searches={project.webResearch} />
 
             {project.brandKit && (
               <section className="nl-section">
