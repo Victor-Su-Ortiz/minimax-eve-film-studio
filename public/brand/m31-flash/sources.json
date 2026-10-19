@@ -1,0 +1,58 @@
+{
+  "retrieved": "2026-10-19",
+  "fileKey": "OBZtbEFlEn8ilGAdqKpk5q",
+  "sourcePage": "https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1269-4544",
+  "section": "M3.1 flash素材",
+  "usage": "User-provided MiniMax launch assets. Logos are composited from the original exports; text-free artwork may be used as an H3 visual reference. No signed download URLs or Figma credentials are stored.",
+  "assets": [
+    {
+      "file": "hero.png",
+      "nodeId": "1311:7298",
+      "sourceUrl": "https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1311-7298",
+      "role": "Official launch hero",
+      "sha256": "d78414ab4022599a82fbb9bf5080f3468e8b781396cd30a57573d59c0ecd12cd"
+    },
+    {
+      "file": "flower-background.png",
+      "nodeId": "1311:7299",
+      "sourceUrl": "https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1311-7299",
+      "role": "Text-free flower artwork for art direction and end-card background",
+      "sha256": "ec7b29f42c82c9ed9c326150a288cebefef5990bd2881a85315e9a87df046565"
+    },
+    {
+      "file": "m31-flash-lockup.png",
+      "nodeId": "1311:7301",
+      "sourceUrl": "https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1311-7301",
+      "role": "Official white MiniMax M3.1 Flash lockup",
+      "sha256": "0833a50457694acb6c91e33581892cd01376af67cecd80b1963f2dc31df5fda0"
+    },
+    {
+      "file": "minimax-wordmark.png",
+      "nodeId": "1311:7302",
+      "sourceUrl": "https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1311-7302",
+      "role": "Official white MiniMax wordmark",
+      "sha256": "a35e4f5a2486e8d6c11347055c86b2cbd8e7355c0f0b494bfefaeee75931a1ed"
+    },
+    {
+      "file": "logo-layer-1.svg",
+      "nodeId": "1311:7301",
+      "sourceUrl": "https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1311-7301",
+      "role": "Original exported vector layer from the lockup",
+      "sha256": "b56ee6f7893e62a64509cf370924f531b1cd04286115b6cb822e8d2515fa6bd1"
+    },
+    {
+      "file": "logo-layer-2.svg",
+      "nodeId": "1311:7301",
+      "sourceUrl": "https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1311-7301",
+      "role": "Original exported vector layer from the lockup",
+      "sha256": "dd9b54cc88ecbb7fc100a838c94906f97a6486b608063e606f2a5b726870c57d"
+    },
+    {
+      "file": "logo-layer-3.svg",
+      "nodeId": "1311:7301",
+      "sourceUrl": "https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1311-7301",
+      "role": "Original exported vector layer from the lockup",
+      "sha256": "63cfc0371535492f7296846bb53a97f1f494eaba8a1fb5a51adaae21c3b5980c"
+    }
+  ]
+}

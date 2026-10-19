@@ -1,0 +1,39 @@
+{
+  "retrieved": "2026-10-17",
+  "brandGuidelines": "https://vercel.com/geist/brands",
+  "assets": [
+    {
+      "file": "minimax-white.webp",
+      "source": "https://www.minimax.io/assets/logo/minimax-horizontal-white.webp",
+      "sha256": "75822b99328197efb3b9bd319f954b55cd42b174117a09dc50eb2175cd990617"
+    },
+    {
+      "file": "minimax-symbol.ico",
+      "source": "https://www.minimax.io/favicon.ico",
+      "sha256": "43ce4c9b9e627b391a116cd5da09e4c062d9c4e3d585509c65a4a3d16f386256"
+    },
+    {
+      "file": "minimax-m3-background.jpg",
+      "source": "https://file.cdn.minimax.io/public/minimax-home-hero-m3-20260923-v2-background-poster.jpg",
+      "sha256": "87c7fd1fe59c8632b67672f86df8bbb3ef67a07a37461bf1401c4ae37fed3f16"
+    },
+    {
+      "file": "vercel-white.svg",
+      "source": "https://k2mkucxia43oc7fa.public.blob.vercel-storage.com/front/press/vercel-assets.zip",
+      "member": "Vercel/logotype/dark/vercel-logotype-dark.svg",
+      "sha256": "d405c07e0feb79a56140143ea6fa07555a996d8f8e7e228c55be6ec40226277c"
+    },
+    {
+      "file": "eve-white.svg",
+      "source": "https://k2mkucxia43oc7fa.public.blob.vercel-storage.com/front/press/eve-assets.zip",
+      "member": "eve/dark/eve-logo-dark.svg",
+      "sha256": "b1d620b0015c4392c12a45ffc639c0d04f703be0409b6dd6cbbfc646921c4eea"
+    }
+  ],
+  "font": {
+    "file": "app/fonts/Geist.woff2",
+    "source": "https://github.com/vercel/geist-font/blob/main/fonts/Geist/webfonts/Geist%5Bwght%5D.woff2",
+    "license": "app/fonts/OFL.txt"
+  },
+  "usage": "Unmodified official logos identify the MiniMax models and eve framework used by this local demo. MiniMax homepage artwork is decorative, not generated campaign output."
+}

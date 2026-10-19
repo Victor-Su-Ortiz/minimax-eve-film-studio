@@ -1,0 +1,18 @@
+# Local source captures include private Feishu material.
+research/
+artifacts/
+scripts/download-loom-recording.py
+
+node_modules/
+.next/
+.eve/
+.output/
+.vercel/
+.studio/
+.tools/
+.env*
+!.env.example
+*.tsbuildinfo
+test-results/
+playwright-report/
+.DS_Store
