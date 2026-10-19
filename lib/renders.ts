@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { videoKey, videoModelId } from "./config";
+import { persistMedia } from "./media-storage";
 import {
   isActiveJob,
   requireEditableShot,
@@ -19,8 +20,8 @@ export function providerBase() {
     process.env.MINIMAX_VIDEO_BASE_URL || "https://api.minimax.io"
   ).replace(/\/$/, "");
 }
-function updateJob(id: string, values: Partial<RenderJob>) {
-  return mutateProject((p) => {
+async function updateJob(id: string, values: Partial<RenderJob>) {
+  return await mutateProject((p) => {
     const job = p.jobs.find((j) => j.id === id);
     if (!job) throw new Error("Render job not found.");
     Object.assign(job, values, { updatedAt: new Date().toISOString() });
@@ -35,13 +36,15 @@ export async function submitShot(
   resolution: "768P" | "2K" = "768P",
   providerFetch: ProviderFetch = fetch,
 ) {
-  const previous = getProject().jobs.find((j) => j.requestKey === requestKey);
+  const previous = (await getProject()).jobs.find(
+    (j) => j.requestKey === requestKey,
+  );
   if (previous) return previous;
   if (!videoKey())
     throw new Error(
       "The H3 credential is unavailable to this render worker. Check the current connection with check_video_connection. No provider request was made.",
     );
-  const snapshot = getProject();
+  const snapshot = await getProject();
   assertRenderAllowance(snapshot, shotId);
   const shot = requireEditableShot(snapshot, shotId);
   if (shot.kind !== "generated" || !shot.prompt.trim())
@@ -51,7 +54,7 @@ export async function submitShot(
       "This shot predates the current reference analysis. Inspect the selected footage, save the analysis, and update this shot's prompt and sourceBasis before rendering. No H3 request was made.",
     );
   const references = await referenceContent(shot.referenceIds);
-  const reservation = mutateProject((p) => {
+  const reservation = await mutateProject((p) => {
     const duplicate = p.jobs.find((j) => j.requestKey === requestKey);
     if (duplicate) return { job: structuredClone(duplicate), fresh: false };
     assertRenderAllowance(p, shotId);
@@ -118,7 +121,7 @@ export async function submitShot(
       signal: AbortSignal.timeout(90_000),
     });
   } catch {
-    return updateJob(job.id, {
+    return await updateJob(job.id, {
       status: "unknown",
       error:
         "The provider response was lost. Do not resubmit. Recover the task ID from the MiniMax console, then attach it to this job.",
@@ -126,7 +129,7 @@ export async function submitShot(
   }
   if (!response.ok) {
     const uncertain = response.status >= 500 || response.status === 408;
-    return updateJob(job.id, {
+    return await updateJob(job.id, {
       status: uncertain ? "unknown" : "failed",
       error: `MiniMax returned HTTP ${response.status}.${uncertain ? " Check the console before resubmitting." : " Check API access, balance and input requirements."}`,
     });
@@ -138,13 +141,16 @@ export async function submitShot(
     body = {};
   }
   if (!body.task_id || !/^[a-zA-Z0-9_-]+$/.test(body.task_id))
-    return updateJob(job.id, {
+    return await updateJob(job.id, {
       status: "unknown",
       error:
         "MiniMax accepted the request but returned no readable task ID. Reconcile it in the provider console.",
     });
-  const updated = updateJob(job.id, { taskId: body.task_id, status: "queued" });
-  mutateProject((p) =>
+  const updated = await updateJob(job.id, {
+    taskId: body.task_id,
+    status: "queued",
+  });
+  await mutateProject((p) =>
     event(
       p,
       "render.queued",
@@ -158,7 +164,7 @@ export async function refreshJob(
   jobId: string,
   providerFetch: ProviderFetch = fetch,
 ) {
-  const job = getProject().jobs.find((j) => j.id === jobId);
+  const job = (await getProject()).jobs.find((j) => j.id === jobId);
   if (!job) throw new Error("Job not found.");
   if (!job.taskId || ["failed", "succeeded"].includes(job.status)) return job;
   if (!videoKey()) throw new Error("H3 API key is missing.");
@@ -187,12 +193,12 @@ export async function refreshJob(
       "H3 returned a mismatched task. The existing job has been preserved.",
     );
   if (["queued", "running"].includes(task.status))
-    return updateJob(job.id, {
+    return await updateJob(job.id, {
       status: task.status as "queued" | "running",
       error: undefined,
     });
   if (["failed", "cancelled"].includes(task.status))
-    return updateJob(job.id, {
+    return await updateJob(job.id, {
       status: "failed",
       error: `H3 marked this task ${task.status}.`,
     });
@@ -229,6 +235,7 @@ export async function refreshJob(
   const assetId = `render_${job.id}`;
   await writeFile(mediaPath(assetId), bytes);
   const metadata = await probe(mediaPath(assetId));
+  await persistMedia(assetId);
   const asset: Asset = {
     id: assetId,
     name: `${job.shotId}-${job.id.slice(0, 8)}.mp4`,
@@ -241,7 +248,7 @@ export async function refreshJob(
     height: metadata.height,
     duration: metadata.duration,
   };
-  return mutateProject((p) => {
+  return await mutateProject((p) => {
     const existing = p.jobs.find((j) => j.id === job.id)!;
     if (existing.status === "succeeded") return existing;
     p.assets.push(asset);
@@ -268,10 +275,10 @@ export async function refreshJob(
   });
 }
 
-export function recoverJob(jobId: string, taskId: string) {
+export async function recoverJob(jobId: string, taskId: string) {
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(taskId))
     throw new Error("Enter the task ID from the MiniMax console.");
-  return mutateProject((p) => {
+  return await mutateProject((p) => {
     const job = p.jobs.find((j) => j.id === jobId);
     if (!job || !["unknown", "submitting"].includes(job.status) || job.taskId)
       throw new Error(

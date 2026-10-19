@@ -20,6 +20,7 @@ import {
 } from "@/lib/production";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 const mutation = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("new-campaign"),
@@ -66,7 +67,7 @@ const mutation = z.discriminatedUnion("action", [
 export async function GET(request: Request) {
   try {
     assertLocalRequest(request);
-    return Response.json(getProject());
+    return Response.json(await getProject());
   } catch (error) {
     return apiError(error, 403);
   }
@@ -76,22 +77,24 @@ export async function POST(request: Request) {
     assertLocalRequest(request);
     const input = mutation.parse(await request.json());
     if (input.action === "new-campaign")
-      return Response.json(startNewCampaign(input.expectedUpdatedAt));
+      return Response.json(await startNewCampaign(input.expectedUpdatedAt));
     if (input.action === "campaign") {
-      saveCampaignBrief(input.campaign);
-      return Response.json(getProject());
+      await saveCampaignBrief(input.campaign);
+      return Response.json(await getProject());
     }
     if (input.action === "shot") {
-      saveShotPlan(input.shot);
-      return Response.json(getProject());
+      await saveShotPlan(input.shot);
+      return Response.json(await getProject());
     }
     if (input.action === "export")
       return Response.json({ cut: await assembleCut() });
     if (input.action === "check-job")
       return Response.json({ job: await refreshJob(input.jobId) });
     if (input.action === "recover-job")
-      return Response.json({ job: recoverJob(input.jobId, input.taskId) });
-    mutateProject((p) => {
+      return Response.json({
+        job: await recoverJob(input.jobId, input.taskId),
+      });
+    await mutateProject((p) => {
       if (input.action === "prompt") {
         if (!p.requests?.some((r) => r.id === input.id)) {
           for (const id of input.assetIds) {
@@ -174,7 +177,7 @@ export async function POST(request: Request) {
         event(p, "take.accepted", `Assigned ${asset.name} to ${shot.title}`);
       }
     });
-    return Response.json(getProject());
+    return Response.json(await getProject());
   } catch (error) {
     return apiError(error);
   }

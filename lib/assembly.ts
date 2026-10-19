@@ -13,6 +13,7 @@ import {
 import { binary } from "./config";
 import { dataDir, event, getProject, mediaPath, mutateProject } from "./store";
 import { probe } from "./media";
+import { ensureMedia, persistMedia } from "./media-storage";
 import { composeScore, SCORE_VERSION } from "./score";
 import { resolveSourceSoundtrack } from "./soundtrack";
 import { sourceLengthEdit } from "./edit";
@@ -30,7 +31,7 @@ import {
 const exec = promisify(execFile);
 export async function assembleCut(options?: ExportStyle) {
   const style = exportStyleInput.parse(options || {});
-  const project = getProject();
+  const project = await getProject();
   if (
     style.finish === "moving-cobrand" &&
     project.shots.some((s) => s.kind === "title")
@@ -115,7 +116,7 @@ export async function assembleCut(options?: ExportStyle) {
       (!c.visualSignature && c.signature === visualSignature),
   );
   let pictureSource = existingPictures
-    ? mediaPath(existingPictures.assetId)
+    ? await ensureMedia(existingPictures.assetId).catch(() => undefined)
     : undefined;
   if (pictureSource) {
     try {
@@ -149,7 +150,7 @@ export async function assembleCut(options?: ExportStyle) {
           files.push(output);
           continue;
         }
-        const source = mediaPath(assetId!);
+        const source = await ensureMedia(assetId!);
         const metadata = await probe(source);
         const movingFinish = Boolean(coBrandLayer && i === inputs.length - 1);
         if (
@@ -326,6 +327,7 @@ export async function assembleCut(options?: ExportStyle) {
         "The final soundtrack check failed. The previous export is preserved.",
       );
     const bytes = await readFile(mediaPath(assetId));
+    await persistMedia(assetId);
     const createdAt = new Date().toISOString();
     const cut: Cut = {
       id,
@@ -368,7 +370,7 @@ export async function assembleCut(options?: ExportStyle) {
       height,
       createdAt,
     };
-    mutateProject((p) => {
+    await mutateProject((p) => {
       p.assets.push(asset);
       p.cuts.push(cut);
       event(

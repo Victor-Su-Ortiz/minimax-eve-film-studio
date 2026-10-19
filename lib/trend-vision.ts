@@ -17,7 +17,7 @@ export async function inspectTrendCandidate(
   providerFetch: typeof fetch = fetch,
 ) {
   const { searchId, postId } = inspectTrendInput.parse(input);
-  const project = getProject();
+  const project = await getProject();
   const search = project.trendSearches?.find((s) => s.id === searchId);
   const post = project.socialPosts?.find((p) => p.id === postId);
   if (
@@ -42,7 +42,7 @@ export async function inspectTrendCandidate(
       throw new Error(loaded.error || "Video unavailable.");
     if (!qualifiesAsTrend(loaded.post))
       throw new Error("Refreshed view count no longer qualifies.");
-    const asset = getProject().assets.find(
+    const asset = (await getProject()).assets.find(
       (a) => a.id === loaded.post.assetId,
     )!;
     const sampled = await sampleAsset(asset.id, "trend");
@@ -52,7 +52,7 @@ export async function inspectTrendCandidate(
       sha256: asset.sha256,
       seconds: sampled.frames.map((f) => f.seconds),
     });
-    saveInspection(searchId, check);
+    await saveInspection(searchId, check);
     return {
       searchId,
       postId,
@@ -69,7 +69,7 @@ export async function inspectTrendCandidate(
     check.status = "failed";
     check.reason =
       error instanceof Error ? error.message : "Visual inspection failed.";
-    saveInspection(searchId, check);
+    await saveInspection(searchId, check);
     return {
       searchId,
       postId,
@@ -79,8 +79,8 @@ export async function inspectTrendCandidate(
   }
 }
 
-function saveInspection(searchId: string, check: TrendVisualCheck) {
-  mutateProject((p) => {
+async function saveInspection(searchId: string, check: TrendVisualCheck) {
+  await mutateProject((p) => {
     const search = p.trendSearches?.find((s) => s.id === searchId);
     if (!search) throw new Error("Search changed while loading the video.");
     search.visualChecks = [
@@ -118,12 +118,12 @@ export const trendVisualMatchInput = z.object({
     .max(4),
 });
 
-export function recordTrendVisualMatch(
+export async function recordTrendVisualMatch(
   input: z.input<typeof trendVisualMatchInput>,
 ) {
   const { searchId, postId, inspectionId, verdict, reason, evidence } =
     trendVisualMatchInput.parse(input);
-  return mutateProject((p) => {
+  return await mutateProject((p) => {
     const search = p.trendSearches?.find((s) => s.id === searchId);
     const check = search?.visualChecks?.find(
       (c) => c.postId === postId && c.inspectionId === inspectionId,

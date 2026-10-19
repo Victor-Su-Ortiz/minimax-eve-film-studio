@@ -1,0 +1,10 @@
+import { hostedClient } from "./hosted-client.mjs";
+const {agent}=hostedClient(process.argv[2]);
+console.log("Agent health:",await agent.health());
+const {session,response}=await agent.sessions.create({message:"Production connectivity check only. Call get_project, report the configured model and whether the project loaded successfully, then stop. Do not change the campaign, scout, or generate any video."});
+const result=await response.result();
+const types=[...new Set(result.events.map(e=>e.type))];
+const failures=result.events.filter(e=>/failed|error/.test(e.type));
+console.log("Completed event types:",types);
+console.log("Failures:",failures.map(e=>({type:e.type,message:e.data?.message||e.data?.error?.message})));
+if(failures.length) process.exitCode=1;

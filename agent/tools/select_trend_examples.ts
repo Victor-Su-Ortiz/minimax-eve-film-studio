@@ -12,8 +12,8 @@ export default defineTool({
     note: z.string().min(1).max(400),
   }),
   label: { start: () => "Select relevant trend examples" },
-  execute({ postIds, note, searchId }) {
-    return mutateProject((p) => {
+  async execute({ postIds, note, searchId }) {
+    return await mutateProject((p) => {
       const search = searchId
         ? p.trendSearches?.find((s) => s.id === searchId)
         : p.trendSearches?.at(-1);

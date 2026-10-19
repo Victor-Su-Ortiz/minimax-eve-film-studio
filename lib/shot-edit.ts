@@ -8,9 +8,9 @@ export const shotEditInput = z.object({
   holdEnd: z.boolean().default(false),
 });
 
-export function setShotEdit(input: z.input<typeof shotEditInput>) {
+export async function setShotEdit(input: z.input<typeof shotEditInput>) {
   const { shotId, start, holdEnd } = shotEditInput.parse(input);
-  return mutateProject((p) => {
+  return await mutateProject((p) => {
     const shot = p.shots.find((s) => s.id === shotId);
     const asset = p.assets.find((a) => a.id === (shot && acceptedAsset(shot)));
     if (!shot?.acceptedTakeId || shot.kind === "title" || !asset?.duration)

@@ -1,0 +1,10 @@
+.studio
+.tools
+.eve
+.output
+.next
+research
+artifacts
+.env*
+tests
+scripts/download-loom-recording.py

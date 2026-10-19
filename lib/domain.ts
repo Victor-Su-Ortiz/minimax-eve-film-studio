@@ -215,7 +215,7 @@ export type ConnectionStatus = {
   video: boolean;
   ffmpeg: boolean;
   model: string;
-  storage: "local";
+  storage: "local" | "cloud";
 };
 
 export function initialProject(): Project {

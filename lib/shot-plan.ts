@@ -6,9 +6,9 @@ import {
 } from "./domain";
 import { event, mutateProject } from "./store";
 
-export function saveShotPlan(value: ShotInput) {
+export async function saveShotPlan(value: ShotInput) {
   const input = shotInput.parse(value);
-  return mutateProject((p) => {
+  return await mutateProject((p) => {
     const shot = requireEditableShot(p, input.id);
     for (const id of input.referenceIds)
       if (!p.assets.some((asset) => asset.id === id))

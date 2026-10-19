@@ -1,5 +1,22 @@
 export function assertLocalRequest(request: Request) {
   const url = new URL(request.url);
+  if (process.env.VERCEL && process.env.STUDIO_STORAGE === "cloud") {
+    if (process.env.STUDIO_DEPLOYMENT_PROTECTED !== "true")
+      throw new Error(
+        "Enable deployment protection before serving this studio.",
+      );
+    const hosts = [
+      process.env.VERCEL_URL,
+      process.env.VERCEL_PROJECT_PRODUCTION_URL,
+      process.env.STUDIO_HOST,
+    ].filter(Boolean);
+    const host = request.headers.get("host") || url.host;
+    if (!hosts.includes(host)) throw new Error("Unrecognized studio host.");
+    const origin = request.headers.get("origin");
+    if (origin && origin !== `https://${host}`)
+      throw new Error("Cross-origin studio requests are not allowed.");
+    return;
+  }
   if (
     process.env.VERCEL ||
     !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)

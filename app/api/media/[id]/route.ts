@@ -3,6 +3,7 @@ import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { getProject, mediaPath } from "@/lib/store";
 import { apiError, assertLocalRequest } from "@/lib/http";
+import { ensureMedia } from "@/lib/media-storage";
 
 export const dynamic = "force-dynamic";
 export async function GET(
@@ -12,10 +13,10 @@ export async function GET(
   try {
     assertLocalRequest(request);
     const { id } = await context.params;
-    const asset = getProject().assets.find((a) => a.id === id);
+    const asset = (await getProject()).assets.find((a) => a.id === id);
     if (!asset)
       return Response.json({ error: "Asset not found." }, { status: 404 });
-    const file = mediaPath(id);
+    const file = await ensureMedia(id);
     const { size } = await stat(file);
     const headers = new Headers({
       "Content-Type": asset.mime,

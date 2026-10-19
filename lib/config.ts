@@ -3,6 +3,8 @@ import { execFileSync } from "node:child_process";
 import { parseEnv } from "node:util";
 import path from "node:path";
 import type { ConnectionStatus } from "./domain";
+import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+import ffprobeInstaller from "@ffprobe-installer/ffprobe";
 
 // Next loads .env before it starts eve. Inherited empty keys can then be
 // protected from eve's env watcher. Read this local studio's file at call time
@@ -57,7 +59,7 @@ export function binary(name: "ffmpeg" | "ffprobe") {
       /* Try next conventional location. */
     }
   }
-  return name;
+  return name === "ffmpeg" ? ffmpegInstaller.path : ffprobeInstaller.path;
 }
 export function connectionStatus(): ConnectionStatus {
   let ffmpeg = false;
@@ -75,6 +77,6 @@ export function connectionStatus(): ConnectionStatus {
     video: Boolean(videoKey()),
     ffmpeg,
     model: modelId(),
-    storage: "local",
+    storage: process.env.STUDIO_STORAGE === "cloud" ? "cloud" : "local",
   };
 }

@@ -11,9 +11,9 @@ import { sampleAsset } from "./media";
 import { isBrandAsset, officialBrandSource } from "./brand-assets";
 import { MAX_CAMPAIGN_REFERENCES } from "./reference-limits";
 
-export function saveCampaignBrief(value: CampaignBriefInput) {
+export async function saveCampaignBrief(value: CampaignBriefInput) {
   const input = campaignBriefInput.parse(value);
-  return mutateProject((p) => {
+  return await mutateProject((p) => {
     for (const id of input.assetIds) {
       const asset = p.assets.find((a) => a.id === id);
       if (!asset || !/^(image|video)\//.test(asset.mime))
@@ -56,13 +56,13 @@ export function saveCampaignBrief(value: CampaignBriefInput) {
 }
 
 export async function inspectCampaignReference(assetId: string) {
-  const before = getProject();
+  const before = await getProject();
   const campaign = before.campaign;
   if (!campaign?.assetIds.includes(assetId))
     throw new Error("Save this asset as a campaign reference first.");
   const asset = before.assets.find((a) => a.id === assetId)!;
   const result = await sampleAsset(assetId, "campaign");
-  mutateProject((p) => {
+  await mutateProject((p) => {
     if (p.campaign?.revision !== campaign.revision)
       throw new Error(
         "Campaign reference changed during inspection. Read it again.",
@@ -85,9 +85,9 @@ export async function inspectCampaignReference(assetId: string) {
   return result;
 }
 
-export function saveCampaignAnalysis(value: CampaignAnalysisInput) {
+export async function saveCampaignAnalysis(value: CampaignAnalysisInput) {
   const input = campaignAnalysisInput.parse(value);
-  return mutateProject((p) => {
+  return await mutateProject((p) => {
     if (!p.campaign || input.sourceRevision !== p.campaign.revision)
       throw new Error(
         "Campaign reference changed. Analyze the latest saved revision.",

@@ -1,12 +1,21 @@
 import { createHash, randomUUID } from "node:crypto";
+import { persistMedia } from "./media-storage";
 import { execFile } from "node:child_process";
-import { readFile, rename, writeFile } from "node:fs/promises";
+import { readFile, rename, writeFile, mkdir } from "node:fs/promises";
+import { get } from "@vercel/blob";
 import path from "node:path";
 import { promisify } from "node:util";
 import sharp from "sharp";
 import { binary } from "./config";
 import type { Asset } from "./domain";
-import { event, getProject, mediaPath, mutateProject } from "./store";
+import {
+  cloudStorage,
+  dataDir,
+  event,
+  getProject,
+  mediaPath,
+  mutateProject,
+} from "./store";
 
 const exec = promisify(execFile);
 export const BRAND_NAME = "MiniMax M3.1 Flash";
@@ -21,6 +30,7 @@ const files = {
 } as const;
 
 export function brandPath(role: keyof typeof files) {
+  if (cloudStorage()) return path.join(dataDir(), "brand", files[role]);
   return path.join(
     process.env.STUDIO_PROJECT_DIR || process.cwd(),
     "public/brand/m31-flash",
@@ -28,7 +38,53 @@ export function brandPath(role: keyof typeof files) {
   );
 }
 
+function vercelLogoPath() {
+  return cloudStorage()
+    ? path.join(dataDir(), "brand", "vercel-white.svg")
+    : path.join(
+        process.env.STUDIO_PROJECT_DIR || process.cwd(),
+        "public/brand/vercel-white.svg",
+      );
+}
+let preparingBrand: Promise<void> | undefined;
+async function ensureBrandKit() {
+  if (!cloudStorage()) return;
+  if (!preparingBrand)
+    preparingBrand = (async () => {
+      await mkdir(path.join(dataDir(), "brand"), { recursive: true });
+      await Promise.all(
+        [...Object.values(files), "vercel-white.svg"].map(async (file) => {
+          const destination = path.join(dataDir(), "brand", file);
+          try {
+            await readFile(/* turbopackIgnore: true */ destination);
+            return;
+          } catch {
+            /* Download the original asset. */
+          }
+          const key =
+            file === "vercel-white.svg"
+              ? "brand/vercel-white.svg"
+              : `brand/m31-flash/${file}`;
+          const result = await get(key, { access: "private" });
+          if (!result || result.statusCode !== 200)
+            throw new Error(
+              "Brand assets have not been initialized. Run the brand upload setup script.",
+            );
+          await writeFile(
+            destination,
+            Buffer.from(await new Response(result.stream).arrayBuffer()),
+          );
+        }),
+      );
+    })().catch((error) => {
+      preparingBrand = undefined;
+      throw error;
+    });
+  await preparingBrand;
+}
+
 export async function brandSignature() {
+  await ensureBrandKit();
   const bytes = await Promise.all(
     Object.keys(files)
       .map((role) => brandPath(role as keyof typeof files))
@@ -36,14 +92,7 @@ export async function brandSignature() {
   );
   const hash = createHash("sha256").update(BRAND_VERSION);
   for (const data of bytes) hash.update(data);
-  hash.update(
-    await readFile(
-      path.join(
-        process.env.STUDIO_PROJECT_DIR || process.cwd(),
-        "public/brand/vercel-white.svg",
-      ),
-    ),
-  );
+  hash.update(await readFile(vercelLogoPath()));
   hash.update("moving-cobrand-v1");
   return hash.digest("hex");
 }
@@ -54,18 +103,14 @@ export async function prepareCoBrandLayer(
   width: number,
   height: number,
 ) {
+  await ensureBrandKit();
   const output = path.join(directory, "brand-cobrand.png");
   const mini = await sharp(brandPath("lockup"))
     .trim()
     .resize({ width: Math.round(width * 0.39) })
     .png()
     .toBuffer({ resolveWithObject: true });
-  const vercel = await sharp(
-    path.join(
-      process.env.STUDIO_PROJECT_DIR || process.cwd(),
-      "public/brand/vercel-white.svg",
-    ),
-  )
+  const vercel = await sharp(vercelLogoPath())
     .resize({ width: Math.round(width * 0.31) })
     .png()
     .toBuffer({ resolveWithObject: true });
@@ -97,6 +142,7 @@ export async function prepareCoBrandLayer(
 // Keep brand art separate from social campaign evidence and its revision.
 // Only the text-free image is registered as an H3 reference. Logos are composited.
 export async function loadBrandAssets() {
+  await ensureBrandKit();
   const bytes = await readFile(brandPath("background"));
   const sha256 = createHash("sha256").update(bytes).digest("hex");
   const id = `brand_m31_flower_${sha256.slice(0, 16)}`;
@@ -113,6 +159,7 @@ export async function loadBrandAssets() {
     await writeFile(temporary, bytes);
     await rename(temporary, destination);
   }
+  await persistMedia(id);
   const asset: Asset = {
     id,
     name: "MiniMax M3.1 Flash — Figma flower artwork.png",
@@ -126,8 +173,8 @@ export async function loadBrandAssets() {
       "https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1311-7299",
     createdAt: new Date().toISOString(),
   };
-  if (!getProject().assets.some((a) => a.id === id)) {
-    mutateProject((p) => {
+  if (!(await getProject()).assets.some((a) => a.id === id)) {
+    await mutateProject((p) => {
       if (p.assets.some((a) => a.id === id)) return;
       p.assets.push(asset);
       event(p, "brand.loaded", "Loaded the MiniMax M3.1 Flash Figma artwork");
@@ -167,6 +214,7 @@ export async function prepareBrandLayers(
   width: number,
   height: number,
 ): Promise<BrandLayers> {
+  await ensureBrandKit();
   const layers = {
     background: path.join(directory, "brand-background.png"),
     title: path.join(directory, "brand-title.png"),

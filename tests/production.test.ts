@@ -89,9 +89,9 @@ before(async () => {
   ]);
   fixture = await readFile(file);
 });
-beforeEach(() => {
+beforeEach(async () => {
   // Existing tests cover the original manual studio as well as the new flow below.
-  mutateProject((p) =>
+  await mutateProject((p) =>
     Object.assign(p, initialProject(), { production: { mode: "manual" } }),
   );
 });
@@ -224,13 +224,13 @@ test("trend search filters low and unknown views, ranks actual views and enforce
     result.posts.map((p) => p.id),
     ["x:456", "x:123"],
   );
-  assert.equal(getProject().trendSearches?.at(-1)?.status, "complete");
+  assert.equal((await getProject()).trendSearches?.at(-1)?.status, "complete");
   const failed = await searchTrendVideos(
     { query: "dancing dogs" },
     async () => new Response(null, { status: 401 }),
   );
   assert.equal(failed.posts.length, 0);
-  assert.equal(getProject().trendSearches?.at(-1)?.status, "failed");
+  assert.equal((await getProject()).trendSearches?.at(-1)?.status, "failed");
 });
 
 test("trend search paginates past low-view results and stops on a repeated cursor", async () => {
@@ -263,7 +263,7 @@ test("trend search paginates past low-view results and stops on a repeated curso
     ["x:456"],
   );
   assert.equal(
-    getProject().socialPosts?.some((p) => p.id === "x:123"),
+    (await getProject()).socialPosts?.some((p) => p.id === "x:123"),
     false,
   );
 });
@@ -284,7 +284,7 @@ test("trend search stays empty after three pages of low and unreported views", a
   );
   assert.equal(calls, 3);
   assert.deepEqual(result.posts, []);
-  assert.deepEqual(getProject().trendSearches?.at(-1)?.postIds, []);
+  assert.deepEqual((await getProject()).trendSearches?.at(-1)?.postIds, []);
 });
 
 test("later-page failure keeps qualifying evidence with an explicit partial-search warning", async () => {
@@ -309,7 +309,10 @@ test("later-page failure keeps qualifying evidence with an explicit partial-sear
     ["x:123"],
   );
   assert.match(result.warning!, /stopped after 1 page.*429/);
-  assert.equal(getProject().trendSearches?.at(-1)?.warning, result.warning);
+  assert.equal(
+    (await getProject()).trendSearches?.at(-1)?.warning,
+    result.warning,
+  );
 });
 
 test("keyword-free discovery can visually review a generic-caption video without changing the campaign", async () => {
@@ -335,7 +338,7 @@ test("keyword-free discovery can visually review a generic-caption video without
   );
   const searchId = found.searchId!;
   assert.equal(found.posts[0].text, "Wait for it 😂");
-  const saved = getProject();
+  const saved = await getProject();
   const before = JSON.stringify({
     campaign: saved.campaign,
     shots: saved.shots,
@@ -358,8 +361,8 @@ test("keyword-free discovery can visually review a generic-caption video without
       },
     ],
   };
-  assert.throws(
-    () => recordTrendVisualMatch(match),
+  await assert.rejects(
+    async () => await recordTrendVisualMatch(match),
     /Inspect this exact candidate/,
   );
   const inspected = await inspectTrendCandidate(
@@ -369,7 +372,7 @@ test("keyword-free discovery can visually review a generic-caption video without
   assert.equal(inspected.error, undefined);
   assert.equal(inspected.seconds!.length, 8);
   assert.ok(Buffer.from(inspected.sheet!.data, "base64").length > 1000);
-  const reviewed = getProject();
+  const reviewed = await getProject();
   assert.equal(
     JSON.stringify({
       campaign: reviewed.campaign,
@@ -390,9 +393,9 @@ test("keyword-free discovery can visually review a generic-caption video without
     seconds,
     observation: "Visible colored test-pattern shapes at this sampled time.",
   }));
-  assert.throws(
-    () =>
-      recordTrendVisualMatch({
+  await assert.rejects(
+    async () =>
+      await recordTrendVisualMatch({
         ...match,
         evidence: [
           {
@@ -403,16 +406,16 @@ test("keyword-free discovery can visually review a generic-caption video without
       }),
     /timestamps from this inspection/,
   );
-  assert.throws(
-    () =>
-      recordTrendVisualMatch({
+  await assert.rejects(
+    async () =>
+      await recordTrendVisualMatch({
         ...match,
         evidence: [match.evidence[0], match.evidence[0]],
       }),
     /two distinct/,
   );
-  assert.equal(recordTrendVisualMatch(match).status, "matched");
-  const matched = getProject();
+  assert.equal((await recordTrendVisualMatch(match)).status, "matched");
+  const matched = await getProject();
   assert.deepEqual(
     selectTrendPosts(matched.trendSearches!.at(-1)!, matched.socialPosts!, [
       "x:123",
@@ -427,7 +430,9 @@ test("keyword-free discovery can visually review a generic-caption video without
     3,
     "Selecting the inspected clip reuses its cached media",
   );
-  assert.ok(getProject().campaign?.assetIds.includes(inspected.assetId!));
+  assert.ok(
+    (await getProject()).campaign?.assetIds.includes(inspected.assetId!),
+  );
 });
 
 test("unavailable candidate footage records a failed visual check without creating a reference", async () => {
@@ -435,7 +440,7 @@ test("unavailable candidate footage records a failed visual check without creati
   const found = await searchTrendVideos({ query: "dogs" }, async () =>
     Response.json({ tweets: [socialTweet("123", 200_000)] }),
   );
-  const campaign = getProject().campaign;
+  const campaign = (await getProject()).campaign;
   const result = await inspectTrendCandidate(
     { searchId: found.searchId!, postId: "x:123" },
     async (url) =>
@@ -445,10 +450,10 @@ test("unavailable candidate footage records a failed visual check without creati
   );
   assert.match(result.error!, /403/);
   assert.equal(
-    getProject().trendSearches!.at(-1)!.visualChecks![0].status,
+    (await getProject()).trendSearches!.at(-1)!.visualChecks![0].status,
     "failed",
   );
-  assert.deepEqual(getProject().campaign, campaign);
+  assert.deepEqual((await getProject()).campaign, campaign);
 });
 
 test("an exact social video is saved, attributed, attached, inspected and reused without duplicate downloads", async () => {
@@ -467,11 +472,13 @@ test("an exact social video is saved, attributed, attached, inspected and reused
     provider,
   );
   assert.equal(result.post.importStatus, "imported");
-  const asset = getProject().assets.find((a) => a.id === result.post.assetId)!;
+  const asset = (await getProject()).assets.find(
+    (a) => a.id === result.post.assetId,
+  )!;
   assert.equal(asset.origin, "social");
   assert.equal(asset.sourceUrl, "https://x.com/creator/status/123");
   assert.ok(asset.duration! >= 4);
-  assert.deepEqual(getProject().campaign?.assetIds, [asset.id]);
+  assert.deepEqual((await getProject()).campaign?.assetIds, [asset.id]);
   const inspected = await inspectCampaignReference(asset.id);
   assert.ok(inspected.frames.length >= 8);
   assert.ok(inspected.frames.every((f) => f.data.length > 100));
@@ -481,8 +488,8 @@ test("an exact social video is saved, attributed, attached, inspected and reused
   );
   assert.equal(repeated.post.assetId, asset.id);
   assert.equal(calls, 2);
-  assert.equal(getProject().assets.length, 1);
-  assert.equal(getProject().jobs.length, 0);
+  assert.equal((await getProject()).assets.length, 1);
+  assert.equal((await getProject()).jobs.length, 0);
 });
 
 test("an unavailable social video stays visibly unavailable with no fabricated asset", async () => {
@@ -493,8 +500,11 @@ test("an unavailable social video stays visibly unavailable with no fabricated a
   );
   assert.equal(result.post.importStatus, "unavailable");
   assert.equal(result.post.assetId, undefined);
-  assert.equal(getProject().assets.length, 0);
-  assert.equal(getProject().socialPosts?.[0].importStatus, "unavailable");
+  assert.equal((await getProject()).assets.length, 0);
+  assert.equal(
+    (await getProject()).socialPosts?.[0].importStatus,
+    "unavailable",
+  );
 });
 
 test("the agent reads newly added and rotated local keys despite a stale inherited environment", async () => {
@@ -592,7 +602,7 @@ test("the configured video model is sent directly to the existing MiniMax endpoi
 });
 
 test("campaign format reaches the H3 request and stays attached to its job", async () => {
-  saveCampaignBrief(dancingDogsExample());
+  await saveCampaignBrief(dancingDogsExample());
   const provider: typeof fetch = async (_url, init) => {
     assert.equal(JSON.parse(init!.body as string).ratio, "9:16");
     return Response.json({ task_id: "portrait_task" });
@@ -604,8 +614,8 @@ test("campaign format reaches the H3 request and stays attached to its job", asy
     provider,
   );
   assert.equal(job.ratio, "9:16");
-  saveCampaignBrief({ ...dancingDogsExample(), ratio: "16:9" });
-  assert.equal(getProject().jobs[0].ratio, "9:16");
+  await saveCampaignBrief({ ...dancingDogsExample(), ratio: "16:9" });
+  assert.equal((await getProject()).jobs[0].ratio, "9:16");
 });
 
 test("one natural-language prompt persists with references and retries do not duplicate it", async () => {
@@ -622,7 +632,7 @@ test("one natural-language prompt persists with references and retries do not du
   };
   assert.equal((await post(body)).status, 200);
   assert.equal((await post(body)).status, 200);
-  const p = getProject();
+  const p = await getProject();
   assert.equal(p.requests?.length, 1);
   assert.equal(p.requests[0].text, body.text);
   assert.deepEqual(p.requests[0].assetIds, [asset.id]);
@@ -637,9 +647,9 @@ test("one natural-language prompt persists with references and retries do not du
     ).status,
     200,
   );
-  assert.equal(getProject().requests?.length, 2);
+  assert.equal((await getProject()).requests?.length, 2);
   assert.equal(
-    getProject().brief,
+    (await getProject()).brief,
     body.text,
     "Follow-up notes must not replace the original brief",
   );
@@ -653,7 +663,7 @@ test("one natural-language prompt persists with references and retries do not du
     ).status,
     400,
   );
-  assert.equal(getProject().requests?.length, 2);
+  assert.equal((await getProject()).requests?.length, 2);
 });
 
 function analysisInput(sourceRevision: number): CampaignAnalysisInput {
@@ -685,13 +695,13 @@ test("campaign notes persist, uninspected claims fail, and revisions invalidate 
     campaign: dancingDogsExample(),
   });
   assert.equal(response.status, 200);
-  const revision = getProject().campaign!.revision;
-  const analysis = saveCampaignAnalysis(analysisInput(revision));
+  const revision = (await getProject()).campaign!.revision;
+  const analysis = await saveCampaignAnalysis(analysisInput(revision));
   assert.equal(analysis.basis, "notes_only");
-  assert.equal(getProject().campaignAnalyses!.length, 1);
-  assert.throws(
-    () =>
-      saveCampaignAnalysis({
+  assert.equal((await getProject()).campaignAnalyses!.length, 1);
+  await assert.rejects(
+    async () =>
+      await saveCampaignAnalysis({
         ...analysisInput(revision),
         observations: [
           { assetId: "invented", seconds: 1, detail: "Not inspected" },
@@ -699,12 +709,12 @@ test("campaign notes persist, uninspected claims fail, and revisions invalidate 
       }),
     /must cite a timestamp/,
   );
-  saveCampaignBrief({
+  await saveCampaignBrief({
     ...dancingDogsExample(),
     notes: "A changed source description",
   });
-  assert.throws(
-    () => saveCampaignAnalysis(analysisInput(revision)),
+  await assert.rejects(
+    async () => await saveCampaignAnalysis(analysisInput(revision)),
     /reference changed/,
   );
   const unsafe = await post({
@@ -718,7 +728,7 @@ test("campaign visual observations require real frames from the saved reference 
   const asset = await registerUpload(
     new File([new Uint8Array(fixture)], "campaign.mp4", { type: "video/mp4" }),
   );
-  const campaign = saveCampaignBrief({
+  const campaign = await saveCampaignBrief({
     ...dancingDogsExample(),
     assetIds: [asset.id],
   });
@@ -730,14 +740,14 @@ test("campaign visual observations require real frames from the saved reference 
     seconds: inspected.frames[0].seconds,
     detail: "The sampled frame shows the test-only color pattern",
   };
-  const result = saveCampaignAnalysis({
+  const result = await saveCampaignAnalysis({
     ...analysisInput(campaign.revision),
     observations: [observation],
   });
   assert.equal(result.basis, "sampled_frames");
-  assert.throws(
-    () =>
-      saveCampaignAnalysis({
+  await assert.rejects(
+    async () =>
+      await saveCampaignAnalysis({
         ...analysisInput(campaign.revision),
         observations: [{ ...observation, seconds: 300 }],
       }),
@@ -749,7 +759,7 @@ test("a source change blocks stale renders and carries inspected influence plus 
   const asset = await registerUpload(
     new File([new Uint8Array(fixture)], "source.mp4", { type: "video/mp4" }),
   );
-  const campaign = saveCampaignBrief({
+  const campaign = await saveCampaignBrief({
     ...dancingDogsExample(),
     assetIds: [asset.id],
   });
@@ -764,7 +774,7 @@ test("a source change blocks stale renders and carries inspected influence plus 
       },
     ],
   };
-  const analysis = saveCampaignAnalysis(input);
+  const analysis = await saveCampaignAnalysis(input);
   let calls = 0;
   const adaptation =
     "Keep the source's colorful foreground composition, translated into an original film set.";
@@ -812,26 +822,32 @@ test("a source change blocks stale renders and carries inspected influence plus 
     /predates the current reference/,
   );
   assert.equal(calls, 0);
-  const plan = saveShotPlan({
-    ...getProject().shots[1],
+  const plan = await saveShotPlan({
+    ...(await getProject()).shots[1],
     prompt: "A colorful film set, a foreground performer, and a steady camera.",
     referenceIds: [asset.id],
     sourceBasis: { analysisId: analysis.id, assetIds: [asset.id], adaptation },
   });
-  assert.equal(planUsesCurrentSources(getProject(), plan), true);
+  assert.equal(planUsesCurrentSources(await getProject(), plan), true);
   const job = await submitShot(plan.id, "source-based", "768P", provider);
   assert.deepEqual(job.sourceBasis, plan.sourceBasis);
   assert.deepEqual(job.referenceIds, [asset.id]);
   assert.equal(job.shotTitle, plan.title);
-  saveCampaignAnalysis(input);
-  assert.equal(planUsesCurrentSources(getProject(), plan), false);
+  await saveCampaignAnalysis(input);
+  assert.equal(planUsesCurrentSources(await getProject(), plan), false);
   await assert.rejects(
     submitShot(plan.id, "new-analysis", "768P", provider),
     /predates the current reference/,
   );
-  assert.throws(() => saveShotPlan(plan), /latest campaign analysis/);
+  await assert.rejects(
+    async () => await saveShotPlan(plan),
+    /latest campaign analysis/,
+  );
   assert.equal(calls, 1);
-  assert.equal(getProject().jobs[0].sourceBasis?.analysisId, analysis.id);
+  assert.equal(
+    (await getProject()).jobs[0].sourceBasis?.analysisId,
+    analysis.id,
+  );
 });
 
 test("unchanged source frames remain usable after adding another reference without making old plans current", async () => {
@@ -841,7 +857,7 @@ test("unchanged source frames remain usable after adding another reference witho
   const second = await registerUpload(
     new File([new Uint8Array(fixture)], "second.mp4", { type: "video/mp4" }),
   );
-  const campaign = saveCampaignBrief({
+  const campaign = await saveCampaignBrief({
     ...dancingDogsExample(),
     assetIds: [asset.id],
   });
@@ -851,12 +867,12 @@ test("unchanged source frames remain usable after adding another reference witho
     seconds: inspected.frames[0].seconds,
     detail: "The sampled color pattern remains byte-identical.",
   };
-  const original = saveCampaignAnalysis({
+  const original = await saveCampaignAnalysis({
     ...analysisInput(campaign.revision),
     observations: [observation],
   });
-  const plan = saveShotPlan({
-    ...getProject().shots[1],
+  const plan = await saveShotPlan({
+    ...(await getProject()).shots[1],
     sourceBasis: {
       analysisId: original.id,
       assetIds: [asset.id],
@@ -864,23 +880,23 @@ test("unchanged source frames remain usable after adding another reference witho
         "Use the observed color arrangement to compose the foreground.",
     },
   });
-  const updated = saveCampaignBrief({
+  const updated = await saveCampaignBrief({
     ...campaign,
     assetIds: [asset.id, second.id],
   });
-  assert.equal(planUsesCurrentSources(getProject(), plan), false);
+  assert.equal(planUsesCurrentSources(await getProject(), plan), false);
   assert.equal(
-    getProject().campaignInspections?.[0].sourceRevision,
+    (await getProject()).campaignInspections?.[0].sourceRevision,
     updated.revision,
   );
-  const current = saveCampaignAnalysis({
+  const current = await saveCampaignAnalysis({
     ...analysisInput(updated.revision),
     observations: [observation],
   });
   assert.equal(current.basis, "sampled_frames");
-  assert.throws(
-    () =>
-      saveCampaignAnalysis({
+  await assert.rejects(
+    async () =>
+      await saveCampaignAnalysis({
         ...analysisInput(updated.revision),
         observations: [{ ...observation, assetId: second.id }],
       }),
@@ -913,7 +929,7 @@ test("an ambiguous response is preserved and a new operation cannot charge again
 });
 
 test("locked shots cannot be replanned, reassigned or rendered", async () => {
-  mutateProject((p) => {
+  await mutateProject((p) => {
     p.shots[1].locked = true;
   });
   let calls = 0;
@@ -928,14 +944,14 @@ test("locked shots cannot be replanned, reassigned or rendered", async () => {
   const response = await post({
     action: "shot",
     shot: {
-      ...getProject().shots[1],
+      ...(await getProject()).shots[1],
       prompt: "Try to overwrite accepted footage",
     },
   });
   assert.equal(response.status, 400);
   assert.equal(calls, 0);
   assert.notEqual(
-    getProject().shots[1].prompt,
+    (await getProject()).shots[1].prompt,
     "Try to overwrite accepted footage",
   );
 });
@@ -944,7 +960,7 @@ test("successful H3 output creates a candidate and preserves accepted footage an
   const uploaded = await registerUpload(
     new File([new Uint8Array(fixture)], "source.mp4", { type: "video/mp4" }),
   );
-  mutateProject((p) => {
+  await mutateProject((p) => {
     p.shots[1].takes.push({
       id: "previous-take",
       assetId: uploaded.id,
@@ -953,7 +969,9 @@ test("successful H3 output creates a candidate and preserves accepted footage an
     });
     p.shots[1].acceptedTakeId = "previous-take";
   });
-  const unchanged = getProject().shots.filter((s) => s.id !== "shot_leap");
+  const unchanged = (await getProject()).shots.filter(
+    (s) => s.id !== "shot_leap",
+  );
   const provider: typeof fetch = async (url) => {
     if (String(url).includes("/query/"))
       return Response.json({
@@ -978,7 +996,7 @@ test("successful H3 output creates a candidate and preserves accepted footage an
   const ready = await refreshJob(job.id, provider);
   assert.equal(ready.status, "succeeded");
   assert.ok(ready.assetId);
-  const p = getProject();
+  const p = await getProject();
   assert.equal(p.shots[1].takes.length, 2);
   assert.equal(p.shots[1].acceptedTakeId, "previous-take");
   assert.deepEqual(
@@ -987,7 +1005,7 @@ test("successful H3 output creates a candidate and preserves accepted footage an
   );
   assert.ok((await readFile(mediaPath(ready.assetId!))).equals(fixture));
   await refreshJob(job.id, provider);
-  assert.equal(getProject().shots[1].takes.length, 2);
+  assert.equal((await getProject()).shots[1].takes.length, 2);
 });
 
 test("uploaded media is validated and visual review returns four real frames", async () => {
@@ -1007,13 +1025,13 @@ test("uploaded media is validated and visual review returns four real frames", a
   await assert.rejects(
     registerUpload(new File(["not a movie"], "bad.mp4", { type: "video/mp4" })),
   );
-  assert.equal(getProject().assets.length, 1);
+  assert.equal((await getProject()).assets.length, 1);
 });
 
 test("Figma artwork is a real H3 image reference without changing campaign evidence or takes", async () => {
-  const before = getProject();
+  const before = await getProject();
   const kit = await loadBrandAssets();
-  const afterLoad = getProject();
+  const afterLoad = await getProject();
   assert.deepEqual(afterLoad.campaign, before.campaign);
   assert.deepEqual(afterLoad.shots, before.shots);
   assert.deepEqual(afterLoad.jobs, before.jobs);
@@ -1025,7 +1043,11 @@ test("Figma artwork is a real H3 image reference without changing campaign evide
   assert.ok(JSON.stringify(references).includes(bytes.toString("base64")));
   assert.ok(Buffer.from(kit.preview.data, "base64").length < 3 * 1024 * 1024);
   await loadBrandAssets();
-  assert.deepEqual(getProject(), afterLoad, "Reloading the kit is idempotent");
+  assert.deepEqual(
+    await getProject(),
+    afterLoad,
+    "Reloading the kit is idempotent",
+  );
 });
 
 test("ten references pass the prompt API and campaign save; an eleventh cannot replace the campaign", async () => {
@@ -1047,13 +1069,13 @@ test("ten references pass the prompt API and campaign save; an eleventh cannot r
     assetIds,
   };
   assert.equal((await post(request)).status, 200);
-  assert.deepEqual(getProject().requests!.at(-1)!.assetIds, assetIds);
+  assert.deepEqual((await getProject()).requests!.at(-1)!.assetIds, assetIds);
   assert.equal(
     (await post({ ...request, assetIds: assets.map((a) => a.id) })).status,
     400,
   );
 
-  const saved = saveCampaignBrief({
+  const saved = await saveCampaignBrief({
     ...dancingDogsExample(),
     urls: assetIds.map((_, i) => `https://x.com/creator/status/${i + 1}`),
     assetIds,
@@ -1068,11 +1090,12 @@ test("ten references pass the prompt API and campaign save; an eleventh cannot r
         "Use the observed lighting and staging across the source set.",
     }),
   );
-  assert.throws(
-    () => saveCampaignBrief({ ...saved, assetIds: assets.map((a) => a.id) }),
+  await assert.rejects(
+    async () =>
+      await saveCampaignBrief({ ...saved, assetIds: assets.map((a) => a.id) }),
     /at most 10/,
   );
-  assert.deepEqual(getProject().campaign, saved);
+  assert.deepEqual((await getProject()).campaign, saved);
   // Research capacity does not change the provider's per-shot media limits.
   await assert.rejects(
     () => referenceContent(assetIds.slice(0, 4)),
@@ -1090,7 +1113,7 @@ test("a social import can fill the tenth campaign source slot", async () => {
     );
     assetIds.push(asset.id);
   }
-  saveCampaignBrief({ ...dancingDogsExample(), urls: [], assetIds });
+  await saveCampaignBrief({ ...dancingDogsExample(), urls: [], assetIds });
   process.env.TWITTERAPI_IO_API_KEY = "test-only-not-a-real-key";
   const imported = await importCampaignVideo(
     "https://x.com/creator/status/123",
@@ -1102,11 +1125,18 @@ test("a social import can fill the tenth campaign source slot", async () => {
           }),
   );
   assert.equal(imported.error, undefined);
-  assert.equal(getProject().campaign!.assetIds.length, MAX_CAMPAIGN_REFERENCES);
-  assert.ok(
-    assetIds.every((id) => getProject().campaign!.assetIds.includes(id)),
+  assert.equal(
+    (await getProject()).campaign!.assetIds.length,
+    MAX_CAMPAIGN_REFERENCES,
   );
-  const source = getProject().socialPosts!.find((p) => p.id === "x:123")!;
+  assert.ok(
+    assetIds.every(async (id) =>
+      (await getProject()).campaign!.assetIds.includes(id),
+    ),
+  );
+  const source = (await getProject()).socialPosts!.find(
+    (p) => p.id === "x:123",
+  )!;
   const inspection = await inspectCampaignReference(source.assetId!);
   assert.ok(inspection.frames.length > 0);
 });
@@ -1130,7 +1160,7 @@ test("three uploaded brand assets do not prevent importing and inspecting a chos
     brands.push(asset.id);
   }
   // Reproduce a campaign created before brand upload classification existed.
-  mutateProject((p) => {
+  await mutateProject((p) => {
     for (const asset of p.assets) asset.origin = "upload";
     p.campaign = {
       ...dancingDogsExample(),
@@ -1139,7 +1169,7 @@ test("three uploaded brand assets do not prevent importing and inspecting a chos
       revision: 1,
     };
   });
-  const beforeShots = getProject().shots;
+  const beforeShots = (await getProject()).shots;
   process.env.TWITTERAPI_IO_API_KEY = "test-only-not-a-real-key";
   const imported = await importCampaignVideo(
     "https://x.com/creator/status/123",
@@ -1151,10 +1181,12 @@ test("three uploaded brand assets do not prevent importing and inspecting a chos
           }),
   );
   assert.equal(imported.error, undefined);
-  const chosen = getProject().socialPosts!.find((p) => p.id === "x:123")!;
-  assert.deepEqual(getProject().campaign!.assetIds, [chosen.assetId]);
+  const chosen = (await getProject()).socialPosts!.find(
+    (p) => p.id === "x:123",
+  )!;
+  assert.deepEqual((await getProject()).campaign!.assetIds, [chosen.assetId]);
   assert.equal(
-    getProject().assets.filter((a) => a.origin === "brand").length,
+    (await getProject()).assets.filter((a) => a.origin === "brand").length,
     3,
   );
   const inspected = await inspectCampaignReference(chosen.assetId!);
@@ -1162,21 +1194,21 @@ test("three uploaded brand assets do not prevent importing and inspecting a chos
     inspected.frames.length > 0,
     "The chosen source must actually reach analysis",
   );
-  const campaign = getProject().campaign!;
-  const saved = saveCampaignBrief({
+  const campaign = (await getProject()).campaign!;
+  const saved = await saveCampaignBrief({
     ...campaign,
     assetIds: [...brands, chosen.assetId!],
   });
   assert.deepEqual(saved.assetIds, [chosen.assetId]);
   assert.deepEqual(
-    getProject().shots,
+    (await getProject()).shots,
     beforeShots,
     "Selection must preserve shot plans and takes",
   );
   await importCampaignVideo(chosen.url, async () =>
     assert.fail("Reuse the cached video"),
   );
-  assert.equal(getProject().campaign!.revision, saved.revision);
+  assert.equal((await getProject()).campaign!.revision, saved.revision);
 });
 
 test("briefs persist, an actual MP4 exports, and range requests support playback", async () => {
@@ -1185,11 +1217,11 @@ test("briefs persist, an actual MP4 exports, and range requests support playback
     brief: "A verified launch brief.",
   });
   assert.equal(saved.status, 200);
-  assert.equal(getProject().brief, "A verified launch brief.");
+  assert.equal((await getProject()).brief, "A verified launch brief.");
   const asset = await registerUpload(
     new File([new Uint8Array(fixture)], "source.mp4", { type: "video/mp4" }),
   );
-  for (const shot of getProject().shots) {
+  for (const shot of (await getProject()).shots) {
     assert.equal(
       (await post({ action: "shot", shot: { ...shot, duration: 4 } })).status,
       200,
@@ -1260,7 +1292,7 @@ test("briefs persist, an actual MP4 exports, and range requests support playback
   const portraitMetadata = await probe(mediaPath(portraitCut.assetId));
   assert.equal(portraitMetadata.width, 1080);
   assert.equal(portraitMetadata.height, 1920);
-  assert.equal(getProject().cuts.length, 3);
+  assert.equal((await getProject()).cuts.length, 3);
   const range = await getMedia(
     new Request(`http://127.0.0.1:3000/api/media/${cut.assetId}`, {
       headers: { range: "bytes=0-99" },
@@ -1275,7 +1307,7 @@ test("source soundtrack uses the original recording once unless looping is expli
   const asset = await registerUpload(
     new File([new Uint8Array(fixture)], "original.mp4", { type: "video/mp4" }),
   );
-  mutateProject((p) => {
+  await mutateProject((p) => {
     p.shots = [p.shots[0], p.shots[3]].map((s) => ({ ...s, duration: 4 }));
   });
   await post({ action: "assign", shotId: "shot_brief", assetId: asset.id });
@@ -1286,7 +1318,7 @@ test("source soundtrack uses the original recording once unless looping is expli
     tempo: 112,
   };
   await setSoundtrack(sourceSettings);
-  assert.equal(getProject().soundtrack?.playback, "once");
+  assert.equal((await getProject()).soundtrack?.playback, "once");
   const onceResponse = await post({ action: "export" });
   assert.equal(
     onceResponse.status,
@@ -1368,7 +1400,7 @@ test("source soundtrack uses the original recording once unless looping is expli
     Math.abs((await probe(mediaPath(short.assetId))).duration! - 4) < 0.1,
   );
   assert.equal(
-    getProject().shots.reduce((n, s) => n + s.duration, 0),
+    (await getProject()).shots.reduce((n, s) => n + s.duration, 0),
     8,
     "Source-length exports preserve accepted shot plans",
   );
@@ -1397,7 +1429,7 @@ test("source soundtrack uses the original recording once unless looping is expli
     /imported original/,
   );
   assert.equal(
-    getProject().soundtrack?.sourceAssetId,
+    (await getProject()).soundtrack?.sourceAssetId,
     asset.id,
     "Invalid source must not replace the selected soundtrack",
   );
@@ -1435,7 +1467,7 @@ test("starting from blank archives the old campaign and media, and rejects stale
   const asset = await registerUpload(
     new File([new Uint8Array(fixture)], "kept.mp4", { type: "video/mp4" }),
   );
-  mutateProject((p) => {
+  await mutateProject((p) => {
     p.sessionId = "previous-session";
     p.requests = [
       {
@@ -1456,7 +1488,7 @@ test("starting from blank archives the old campaign and media, and rejects stale
     p.shots[0].acceptedTakeId = "accepted";
     p.shots[0].locked = true;
   });
-  const old = getProject();
+  const old = await getProject();
   assert.equal(
     (await post({ action: "new-campaign", expectedUpdatedAt: "stale" })).status,
     400,
@@ -1466,7 +1498,7 @@ test("starting from blank archives the old campaign and media, and rejects stale
     expectedUpdatedAt: old.updatedAt,
   });
   assert.equal(response.status, 200);
-  const fresh = getProject();
+  const fresh = await getProject();
   assert.equal(fresh.brief, "");
   assert.equal(fresh.sessionId, undefined);
   assert.deepEqual(fresh.requests, []);
@@ -1485,7 +1517,7 @@ test("starting from blank archives the old campaign and media, and rejects stale
   assert.deepEqual(JSON.parse(archived.document), old);
   archivedDb.close();
   assert.ok((await readFile(mediaPath(asset.id))).equals(fixture));
-  mutateProject((p) =>
+  await mutateProject((p) =>
     p.jobs.push({
       id: "uncertain",
       requestKey: "uncertain",
@@ -1504,12 +1536,12 @@ test("starting from blank archives the old campaign and media, and rejects stale
     (
       await post({
         action: "new-campaign",
-        expectedUpdatedAt: getProject().updatedAt,
+        expectedUpdatedAt: (await getProject()).updatedAt,
       })
     ).status,
     400,
   );
-  assert.equal(getProject().jobs[0].id, "uncertain");
+  assert.equal((await getProject()).jobs[0].id, "uncertain");
 });
 
 async function prepareAutomaticProduction() {
@@ -1525,12 +1557,12 @@ async function prepareAutomaticProduction() {
     assetIds: [source.id],
   });
   assert.equal(chosen.status, 200);
-  const campaign = saveCampaignBrief({
+  const campaign = await saveCampaignBrief({
     ...dancingDogsExample(),
     assetIds: [source.id],
   });
   const inspection = await inspectCampaignReference(source.id);
-  const analysis = saveCampaignAnalysis({
+  const analysis = await saveCampaignAnalysis({
     ...analysisInput(campaign.revision),
     observations: [
       {
@@ -1540,8 +1572,8 @@ async function prepareAutomaticProduction() {
       },
     ],
   });
-  for (const shot of getProject().shots) {
-    saveShotPlan({
+  for (const shot of (await getProject()).shots) {
+    await saveShotPlan({
       ...shot,
       duration: 4,
       kind: shot.kind === "title" ? "title" : "generated",
@@ -1588,9 +1620,9 @@ async function reviewCompletedTake(
   jobId: string,
   verdict: "use" | "revise" | "unusable" = "use",
 ) {
-  const job = getProject().jobs.find((j) => j.id === jobId)!;
+  const job = (await getProject()).jobs.find((j) => j.id === jobId)!;
   const inspection = await inspectTakeAsset(job.assetId!);
-  return recordTakeReview({
+  return await recordTakeReview({
     jobId,
     inspectionId: inspection.inspectionId!,
     verdict,
@@ -1605,15 +1637,15 @@ async function reviewCompletedTake(
 
 test("automatic production waits for the human reference choice, not a scout import", async () => {
   assert.equal(initialProject().production?.mode, "automatic");
-  mutateProject((p) => {
+  await mutateProject((p) => {
     p.production = { mode: "automatic" };
   });
   const source = await registerUpload(
     new File([new Uint8Array(fixture)], "scouted.mp4", { type: "video/mp4" }),
   );
-  saveCampaignBrief({ ...dancingDogsExample(), assetIds: [source.id] });
-  assert.throws(
-    () => assertProductionReference(getProject()),
+  await saveCampaignBrief({ ...dancingDogsExample(), assetIds: [source.id] });
+  await assert.rejects(
+    async () => assertProductionReference(await getProject()),
     /user to choose/,
   );
   await assert.rejects(
@@ -1635,16 +1667,18 @@ test("automatic production waits for the human reference choice, not a scout imp
     ).status,
     200,
   );
-  assert.equal(getProject().production?.reference?.url, url);
-  assert.throws(
-    () => assertProductionReference(getProject()),
+  assert.equal((await getProject()).production?.reference?.url, url);
+  await assert.rejects(
+    async () => assertProductionReference(await getProject()),
     /Import the user's selected/,
   );
-  mutateProject((p) => {
+  await mutateProject((p) => {
     p.assets.find((a) => a.id === source.id)!.sourceUrl = url;
   });
-  assert.doesNotThrow(() => assertProductionReference(getProject()));
-  const productionId = getProject().production?.id;
+  await assert.doesNotReject(async () =>
+    assertProductionReference(await getProject()),
+  );
+  const productionId = (await getProject()).production?.id;
   assert.equal(
     (
       await post({
@@ -1657,7 +1691,7 @@ test("automatic production waits for the human reference choice, not a scout imp
     200,
   );
   assert.equal(
-    getProject().production?.id,
+    (await getProject()).production?.id,
     productionId,
     "The same choice must not reset the retry allowance",
   );
@@ -1666,7 +1700,9 @@ test("automatic production waits for the human reference choice, not a scout imp
 test("one reference choice runs all reviewed takes through an automatic branded MP4 export without acceptance calls", async () => {
   await prepareAutomaticProduction();
   const provider = successfulVideoProvider();
-  const scenes = getProject().shots.filter((s) => s.kind === "generated");
+  const scenes = (await getProject()).shots.filter(
+    (s) => s.kind === "generated",
+  );
   let exported;
   for (const [index, scene] of scenes.entries()) {
     const submitted = await submitShot(
@@ -1677,10 +1713,13 @@ test("one reference choice runs all reviewed takes through an automatic branded 
     );
     const ready = await refreshJob(submitted.id, provider.fetcher);
     assert.equal(ready.status, "succeeded");
-    assert.throws(() => selectReviewedTake(ready.id), /reviewer must inspect/);
-    assert.throws(
-      () =>
-        recordTakeReview({
+    await assert.rejects(
+      async () => await selectReviewedTake(ready.id),
+      /reviewer must inspect/,
+    );
+    await assert.rejects(
+      async () =>
+        await recordTakeReview({
           jobId: ready.id,
           inspectionId: "fabricated",
           verdict: "use",
@@ -1709,9 +1748,15 @@ test("one reference choice runs all reviewed takes through an automatic branded 
     metadata.duration && metadata.duration > 15 && metadata.duration < 17,
   );
   assert.equal(metadata.hasAudio, true);
-  const replay = await finishTakeSelection(getProject().jobs.at(-1)!.id);
+  const replay = await finishTakeSelection(
+    (await getProject()).jobs.at(-1)!.id,
+  );
   assert.equal(replay.cut?.assetId, exported.assetId);
-  assert.equal(getProject().cuts.length, 1, "Retries reuse the saved export");
+  assert.equal(
+    (await getProject()).cuts.length,
+    1,
+    "Retries reuse the saved export",
+  );
   const response = await getMedia(
     new Request(`http://127.0.0.1:3000/api/media/${exported.assetId}`, {
       headers: { Range: "bytes=0-1023" },
@@ -1725,7 +1770,7 @@ test("one reference choice runs all reviewed takes through an automatic branded 
 test("automatic revisions are bounded and cannot select unusable or stale-source footage", async () => {
   await prepareAutomaticProduction();
   const provider = successfulVideoProvider();
-  const scene = getProject().shots[0];
+  const scene = (await getProject()).shots[0];
   const first = await submitShot(
     scene.id,
     "first-auto",
@@ -1734,8 +1779,11 @@ test("automatic revisions are bounded and cannot select unusable or stale-source
   );
   await refreshJob(first.id, provider.fetcher);
   await reviewCompletedTake(first.id, "revise");
-  assert.throws(() => selectReviewedTake(first.id), /one allowed revision/);
-  saveShotPlan({
+  await assert.rejects(
+    async () => await selectReviewedTake(first.id),
+    /one allowed revision/,
+  );
+  await saveShotPlan({
     ...scene,
     prompt: "A revised bunny scene with exactly two large shapes.",
   });
@@ -1747,8 +1795,8 @@ test("automatic revisions are bounded and cannot select unusable or stale-source
   );
   await refreshJob(retry.id, provider.fetcher);
   await reviewCompletedTake(retry.id, "unusable");
-  assert.throws(
-    () => selectReviewedTake(retry.id),
+  await assert.rejects(
+    async () => await selectReviewedTake(retry.id),
     /reviewer must inspect and record a usable/,
   );
   await assert.rejects(
@@ -1756,13 +1804,16 @@ test("automatic revisions are bounded and cannot select unusable or stale-source
     /one automatic revision/,
   );
   assert.equal(provider.submissions(), 2);
-  const selected = selectReviewedTake(first.id);
+  const selected = await selectReviewedTake(first.id);
   assert.equal(
     selected.acceptedTakeId,
     first.id,
     "The better earlier reviewed take can win",
   );
-  assert.throws(() => selectReviewedTake(retry.id), /already has a selected/);
+  await assert.rejects(
+    async () => await selectReviewedTake(retry.id),
+    /already has a selected/,
+  );
   const another = await submitShot(
     "shot_leap",
     "other-scene",
@@ -1771,10 +1822,13 @@ test("automatic revisions are bounded and cannot select unusable or stale-source
   );
   await refreshJob(another.id, provider.fetcher);
   await reviewCompletedTake(another.id);
-  mutateProject((p) => {
+  await mutateProject((p) => {
     chooseProductionReference(p, { url: "https://x.com/creator/status/999" });
     p.assets.find((a) => a.id === p.campaign!.assetIds[0])!.sourceUrl =
       "https://x.com/creator/status/999";
   });
-  assert.throws(() => selectReviewedTake(another.id), /earlier reference/);
+  await assert.rejects(
+    async () => await selectReviewedTake(another.id),
+    /earlier reference/,
+  );
 });

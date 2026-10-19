@@ -18,10 +18,10 @@ export default defineTool({
       .length(3),
   }),
   label: { start: () => "Develop three creative directions" },
-  execute({ treatments }) {
+  async execute({ treatments }) {
     if (new Set(treatments.map((t) => t.id)).size !== 3)
       throw new Error("Each treatment needs a unique ID.");
-    return mutateProject((p) => {
+    return await mutateProject((p) => {
       p.treatments = treatments;
       p.selectedTreatmentId = undefined;
       event(

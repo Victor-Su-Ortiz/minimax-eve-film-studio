@@ -1,8 +1,8 @@
 # MiniMax eve Film Studio
 
-A private local production workspace that decodes a social campaign's creative structure and turns it into an original MiniMax M3.1 launch film. M3.1 develops the breakdown, treatments and shot plans; MiniMax H3 generates video; Vercel eve runs the director agent and durable render waits.
+A film studio that decodes a social campaign's creative structure and turns it into an original MiniMax M3.1 launch film. M3.1 develops the breakdown, treatments and shot plans; MiniMax H3 generates video; Vercel eve runs the director agent and durable render waits.
 
-This repository contains the runnable local app. It is not a hosted multi-user service. See [the hosted starter plan](docs/hosted-starter.md) for the minimum changes needed to run it on Vercel with Neon.
+Run locally with SQLite and local media, or deploy your own protected studio on Vercel with Neon and private Blob storage. See [hosted setup](docs/hosted-starter.md). Each installation is one shared studio for its trusted operators, not a multi-tenant service.
 
 Each person cloning or deploying the template supplies their own MiniMax API keys and model IDs. The template connects directly to the preconfigured MiniMax endpoints; no author-owned credentials or AI Gateway account are included or required.
 
@@ -88,7 +88,7 @@ H3 reference videos and audio must each be 2–15 seconds, with total reference 
 
 Visual review sends four timestamped still frames together in one contact sheet, so the reviewer can compare every sample in a single image. Fresh inspections start a new specialist task; clarifying an existing report can reuse its task. It does not evaluate all motion, voice intelligibility, music licensing or soundtrack quality. Perform a playback/listening pass before release. Exports use straight cuts and a separate soundtrack: an explicitly selected original reference recording (once by default, loop only when requested), a local synthesized instrumental score, or silence. H3 take audio is excluded. Visual references sent to H3 are muted without modifying the original files. Audio-only revisions reuse the encoded pictures and preserve previous exports; audio checks record source provenance and duration, not a listening review.
 
-This version is **local only**: `.studio/` holds SQLite and media; `.eve/` contains eve’s local run state. Keep those folders for continuity. `STUDIO_DATA_DIR` can point to another persistent local directory but must resolve to the same location in both processes. It must be absolute when overridden. Do not run multiple studios on the same data directory. Vercel-hosted storage is deliberately rejected until shared media/manifest storage and production authentication are configured. The eve channel also admits local development only. No deployment has been created.
+In local mode, `.studio/` holds SQLite and media and `.eve/` holds eve’s local run state. Keep those folders for continuity. `STUDIO_DATA_DIR` can point to another absolute persistent local directory shared by both processes; do not run multiple local studios against the same directory. Hosted mode uses Neon transactions for campaign state and private Blob for media. `/tmp` is only a recoverable working cache. Uploaded files go directly to Blob before server-side validation. FFmpeg/ffprobe are packaged with the functions; a separate media service is not required for this starter. Hosted requests are admitted only when the deployment protection mode is explicitly configured. See [hosted setup](docs/hosted-starter.md).
 
 Live M3.1 and H3 calls require real credentials and were not verified during the initial build. The production tests use a test-only provider fixture and real FFmpeg media; that fixture is never available as an application mode.
 

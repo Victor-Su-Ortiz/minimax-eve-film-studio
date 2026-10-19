@@ -1,4 +1,5 @@
 "use client";
+import { uploadStudioFile } from "@/lib/upload-client";
 
 import { DirectorText } from "./director-text";
 
@@ -185,9 +186,7 @@ function Workspace({
     setBusy("upload");
     try {
       for (const file of Array.from(files)) {
-        const form = new FormData();
-        form.set("file", file);
-        await request("/api/assets", { method: "POST", body: form });
+        await uploadStudioFile(file);
       }
       await refresh();
       setTab(tab === "campaign" ? "campaign" : "assets");

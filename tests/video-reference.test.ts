@@ -41,7 +41,7 @@ test("prepare a real H3-compatible excerpt without altering the original or soun
   const source = await registerUpload(
     new File([originalBytes], "source.mp4", { type: "video/mp4" }),
   );
-  const before = getProject();
+  const before = await getProject();
   const prepared = await prepareVideoReference({
     assetId: source.id,
     start: 4,
@@ -59,7 +59,7 @@ test("prepare a real H3-compatible excerpt without altering the original or soun
   assert.ok((await referenceContent([prepared.asset.id])).length === 1);
   assert.deepEqual(await readFile(mediaPath(source.id)), originalBytes);
   assert.equal((await probe(mediaPath(source.id))).hasAudio, true);
-  const after = getProject();
+  const after = await getProject();
   assert.deepEqual(after.campaign, before.campaign);
   assert.deepEqual(after.soundtrack, before.soundtrack);
   assert.deepEqual(after.shots, before.shots);
@@ -69,7 +69,7 @@ test("prepare a real H3-compatible excerpt without altering the original or soun
     duration: 5,
   });
   assert.equal(repeated.asset.id, prepared.asset.id);
-  assert.equal(getProject().assets.length, after.assets.length);
+  assert.equal((await getProject()).assets.length, after.assets.length);
   await assert.rejects(
     prepareVideoReference({ assetId: source.id, start: 16, duration: 5 }),
     /within/,

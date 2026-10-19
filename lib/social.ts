@@ -100,8 +100,8 @@ export function socialMediaUrl(
   }
 }
 
-function upsertPost(post: SocialPost) {
-  return mutateProject((p) => {
+async function upsertPost(post: SocialPost) {
+  return await mutateProject((p) => {
     p.socialPosts ||= [];
     const existing = p.socialPosts.find((v) => v.id === post.id);
     if (existing) Object.assign(existing, post);
@@ -211,7 +211,7 @@ export async function searchTrendVideos(
     status: "searching",
     postIds: [],
   };
-  mutateProject((p) => {
+  await mutateProject((p) => {
     (p.trendSearches ||= []).push(search);
     event(
       p,
@@ -272,7 +272,7 @@ export async function searchTrendVideos(
           (b.metrics.likes || 0) - (a.metrics.likes || 0),
       )
       .slice(0, 6);
-    mutateProject((p) => {
+    await mutateProject((p) => {
       p.socialPosts ||= [];
       for (const post of posts) {
         const existing = p.socialPosts.find((v) => v.id === post.id);
@@ -314,7 +314,7 @@ export async function searchTrendVideos(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Trend search failed.";
-    mutateProject((p) => {
+    await mutateProject((p) => {
       Object.assign(
         p.trendSearches!.find((s) => s.id === search.id)!,
         { status: "failed", error: message },
@@ -513,8 +513,8 @@ export async function downloadSocialVideo(
   throw new Error("The video redirected too many times.");
 }
 
-function attachReference(post: SocialPost) {
-  const p = getProject();
+async function attachReference(post: SocialPost) {
+  const p = await getProject();
   const campaign = p.campaign || emptyCampaign();
   const sourceIds = campaign.assetIds.filter((id) => {
     const asset = p.assets.find((a) => a.id === id);
@@ -530,7 +530,7 @@ function attachReference(post: SocialPost) {
       `The reference is imported, but the campaign already has ${MAX_CAMPAIGN_REFERENCES} sources. Choose which sources to retain with set_campaign_brief.`,
     );
   const { revision: _, ...brief } = campaign;
-  return saveCampaignBrief({ ...brief, urls, assetIds });
+  return await saveCampaignBrief({ ...brief, urls, assetIds });
 }
 
 const imports = new Map<string, ReturnType<typeof importVideo>>();
@@ -555,16 +555,20 @@ async function importVideo(
   providerFetch: typeof fetch,
   attachToCampaign = true,
 ) {
-  const existing = getProject().socialPosts?.find((p) => p.id === source.id);
+  const existing = (await getProject()).socialPosts?.find(
+    (p) => p.id === source.id,
+  );
   if (
     existing?.assetId &&
-    getProject().assets.some((a) => a.id === existing.assetId)
+    (await getProject()).assets.some((a) => a.id === existing.assetId)
   ) {
-    const campaign = attachToCampaign ? attachReference(existing) : undefined;
+    const campaign = attachToCampaign
+      ? await attachReference(existing)
+      : undefined;
     if (attachToCampaign) {
       existing.discoveryOnly = false;
       existing.error = undefined;
-      upsertPost(existing);
+      await upsertPost(existing);
     }
     return {
       post: postSummary(existing),
@@ -585,8 +589,8 @@ async function importVideo(
     importStatus: "fetching",
     error: undefined,
   };
-  upsertPost(post);
-  mutateProject((p) =>
+  await upsertPost(post);
+  await mutateProject((p) =>
     event(
       p,
       "reference.fetching",
@@ -629,7 +633,7 @@ async function importVideo(
         );
       bytes = await downloadSocialVideo(post.videoUrl!, providerFetch);
     }
-    upsertPost(post);
+    await upsertPost(post);
     if (!post.duration || post.duration > 120)
       throw new Error(
         "Automatic references must be videos up to 2 minutes. Attach a shorter excerpt for longer posts.",
@@ -649,9 +653,9 @@ async function importVideo(
       importStatus: "imported",
       error: undefined,
     };
-    upsertPost(post);
-    const campaign = attachToCampaign ? attachReference(post) : undefined;
-    mutateProject((p) =>
+    await upsertPost(post);
+    const campaign = attachToCampaign ? await attachReference(post) : undefined;
+    await mutateProject((p) =>
       event(
         p,
         attachToCampaign ? "reference.imported" : "trends.video_loaded",
@@ -674,8 +678,8 @@ async function importVideo(
       importStatus: post.assetId ? "imported" : "unavailable",
       error: message,
     };
-    upsertPost(post);
-    mutateProject((p) => event(p, "reference.unavailable", message));
+    await upsertPost(post);
+    await mutateProject((p) => event(p, "reference.unavailable", message));
     return {
       post: postSummary(post),
       error: message,

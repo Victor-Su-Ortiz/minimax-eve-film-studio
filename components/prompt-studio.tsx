@@ -33,6 +33,7 @@ import { DirectorText } from "./director-text";
 import { FilmCrew } from "./film-crew";
 import { sendWithSessionRecovery } from "@/lib/session-recovery";
 import { MAX_CAMPAIGN_REFERENCES } from "@/lib/reference-limits";
+import { uploadStudioFile } from "@/lib/upload-client";
 
 const examples = [
   {
@@ -370,12 +371,7 @@ function PromptWorkspace({
     try {
       const added: Asset[] = [];
       for (const file of Array.from(files)) {
-        const form = new FormData();
-        form.set("file", file);
-        const { asset } = await api<{ asset: Asset }>("/api/assets", {
-          method: "POST",
-          body: form,
-        });
+        const { asset } = await uploadStudioFile(file);
         added.push(asset);
       }
       setAttachments((current) => [...current, ...added]);

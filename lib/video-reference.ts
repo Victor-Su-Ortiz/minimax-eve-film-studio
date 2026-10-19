@@ -8,6 +8,7 @@ import { z } from "zod";
 import { binary } from "./config";
 import type { Asset } from "./domain";
 import { MAX_UPLOAD, probe } from "./media";
+import { ensureMedia, persistMedia, readMedia } from "./media-storage";
 import { event, getProject, mediaPath, mutateProject } from "./store";
 
 const exec = promisify(execFile);
@@ -22,7 +23,7 @@ export async function prepareVideoReference(
   input: z.infer<typeof videoReferenceInput>,
 ) {
   const { assetId, start, duration } = videoReferenceInput.parse(input);
-  const project = getProject();
+  const project = await getProject();
   const source = project.assets.find((asset) => asset.id === assetId);
   if (!source?.mime.startsWith("video/") || !source.duration)
     throw new Error("Choose an existing video asset with a known duration.");
@@ -42,7 +43,7 @@ export async function prepareVideoReference(
   const id = `excerpt_${signature.slice(0, 32)}`;
   const existing = project.assets.find((asset) => asset.id === id);
   if (existing) {
-    await readFile(mediaPath(id));
+    await readMedia(id);
     return result(existing);
   }
   const directory = await mkdtemp(path.join(tmpdir(), "minimax-excerpt-"));
@@ -58,7 +59,7 @@ export async function prepareVideoReference(
         "-ss",
         String(start),
         "-i",
-        mediaPath(assetId),
+        await ensureMedia(assetId),
         "-t",
         String(duration),
         "-map",
@@ -114,7 +115,8 @@ export async function prepareVideoReference(
       createdAt: new Date().toISOString(),
     };
     await writeFile(mediaPath(id), bytes);
-    mutateProject((p) => {
+    await persistMedia(id);
+    await mutateProject((p) => {
       if (!p.assets.some((a) => a.id === assetId && a.sha256 === source.sha256))
         throw new Error(
           "The source campaign changed while preparing the excerpt.",

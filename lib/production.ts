@@ -102,7 +102,7 @@ export function assertRenderAllowance(p: Project, shotId: string) {
 
 export async function inspectTakeAsset(assetId: string) {
   const sampled = await sampleAsset(assetId);
-  const asset = getProject().assets.find((a) => a.id === assetId)!;
+  const asset = (await getProject()).assets.find((a) => a.id === assetId)!;
   if (asset.origin !== "h3") return { ...sampled, inspectionId: undefined };
   const inspection = {
     id: randomUUID(),
@@ -110,7 +110,7 @@ export async function inspectTakeAsset(assetId: string) {
     sha256: asset.sha256,
     seconds: sampled.frames.map((f) => f.seconds),
   };
-  mutateProject((p) => {
+  await mutateProject((p) => {
     p.takeInspections ||= [];
     p.takeInspections.push(inspection);
   });
@@ -133,9 +133,9 @@ export const takeReviewInput = z.object({
     .max(4),
 });
 
-export function recordTakeReview(value: z.infer<typeof takeReviewInput>) {
+export async function recordTakeReview(value: z.infer<typeof takeReviewInput>) {
   const input = takeReviewInput.parse(value);
-  return mutateProject((p) => {
+  return await mutateProject((p) => {
     const job = p.jobs.find(
       (j) => j.id === input.jobId && j.status === "succeeded",
     );
@@ -177,8 +177,8 @@ export function recordTakeReview(value: z.infer<typeof takeReviewInput>) {
   });
 }
 
-export function selectReviewedTake(jobId: string) {
-  return mutateProject((p) => {
+export async function selectReviewedTake(jobId: string) {
+  return await mutateProject((p) => {
     if (p.production?.mode !== "automatic")
       throw new Error(
         "Automatic take selection is not enabled for this campaign.",
@@ -232,8 +232,8 @@ export function selectReviewedTake(jobId: string) {
 }
 
 export async function finishTakeSelection(jobId: string) {
-  const shot = selectReviewedTake(jobId);
-  const remaining = getProject().shots.filter(
+  const shot = await selectReviewedTake(jobId);
+  const remaining = (await getProject()).shots.filter(
     (s) => s.kind !== "title" && !acceptedAsset(s),
   );
   return {

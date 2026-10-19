@@ -1,5 +1,13 @@
 import { eveChannel } from "eve/channels/eve";
-import { localDev } from "eve/channels/auth";
+import { localDev, vercelOidc, none } from "eve/channels/auth";
 
-// This first build is a private, loopback-only studio. Production fails closed.
-export default eveChannel({ auth: [localDev()] });
+// Browser requests are authenticated at Vercel's project boundary. Enable this
+// mode only after configuring Vercel Authentication for ALL environments.
+// Internal workflow/subagent calls continue to use project OIDC.
+export default eveChannel({
+  auth: [
+    vercelOidc(),
+    ...(process.env.VERCEL && process.env.STUDIO_DEPLOYMENT_PROTECTED === "true" ? [none()] : []),
+    localDev(),
+  ],
+});

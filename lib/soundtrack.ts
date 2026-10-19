@@ -6,6 +6,7 @@ import {
 } from "./domain";
 import { event, getProject, mediaPath, mutateProject } from "./store";
 import { probe } from "./media";
+import { ensureMedia } from "./media-storage";
 
 export async function resolveSourceSoundtrack(
   project: Project,
@@ -21,7 +22,7 @@ export async function resolveSourceSoundtrack(
     throw new Error(
       "Choose an imported original clip or uploaded audio file, not an H3 take or an export.",
     );
-  const metadata = await probe(mediaPath(asset.id));
+  const metadata = await probe(await ensureMedia(asset.id));
   if (
     !metadata.hasAudio ||
     !metadata.audioDuration ||
@@ -40,8 +41,8 @@ export async function setSoundtrack(input: Soundtrack) {
     soundtrack.playback ??= "once";
     soundtrack.fit ??= "keep-film";
   }
-  const source = await resolveSourceSoundtrack(getProject(), soundtrack);
-  return mutateProject((project) => {
+  const source = await resolveSourceSoundtrack(await getProject(), soundtrack);
+  return await mutateProject((project) => {
     if (source && !project.assets.some((a) => a.id === source.asset.id))
       throw new Error(
         "The campaign changed while checking audio. Choose the source again.",

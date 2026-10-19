@@ -1,37 +1,57 @@
-# Bring-your-own-key template and optional hosted starter
+# Deploy your own film studio
 
-Every person running this template supplies their own MiniMax keys and model IDs in `.env.local` or their own deployment environment. Text calls go directly to `https://api.minimax.io/anthropic/v1`; video calls use `https://api.minimax.io/v2/video_generation`. The template includes no author-owned credentials and does not require AI Gateway or a shared template password.
+Each installation uses its deployer's MiniMax keys and configured model IDs. Text calls go directly to `https://api.minimax.io/anthropic/v1`; video calls use `https://api.minimax.io/v2/video_generation`. No author-owned credentials, AI Gateway, or shared template password are required.
 
-The settings belong to each installation. This is not a shared public website that accepts visitors' API keys in a form.
+The hosted starter is one studio shared by trusted operators. It uses Neon for campaign state, private Vercel Blob for media, and packaged FFmpeg/ffprobe in Vercel functions. eve runs the agent and durable render waits. Vercel Sandbox persists eve's session workspaces and model-visible image attachments; it is not a separate FFmpeg service. Local mode retains SQLite, local media, and just-bash workspaces. A public multi-tenant service with per-user API-key entry is a separate scope.
 
-The local app works with SQLite, local media, FFmpeg and eve's local runtime. This document is a deployment plan, not an implemented deployment. Setting `DATABASE_URL` alone will not make the app use Neon. Local-only request and storage checks intentionally reject Vercel today.
+## Provision your instance
 
-## Minimum Vercel setup
+1. Use Node 24, install dependencies, copy `.env.example` to `.env.local`, and configure your own authorized MiniMax keys/models.
+2. Create/link a Vercel project. Enable **Vercel Authentication for all deployments**, including production, under Deployment Protection. This uses Vercel sign-in rather than an app password. The hosted agent trusts that project boundary; do not set `STUDIO_DEPLOYMENT_PROTECTED=true` on an unprotected project.
+3. Create a dedicated Neon project/database and a test branch. Put production connection URLs in `.env.deploy.local` and test-branch URLs in `.env.neon-test.local`, using `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct). Obtain both from Neon; its returned URL may already be pooled. Use verified TLS. These files are ignored by Git and deployment uploads.
+4. Create a private Blob store connected to your Vercel project:
 
-| Part | Purpose | Change needed |
-| --- | --- | --- |
-| Next.js + eve on Vercel | UI, agent sessions, durable H3 waits | Configure production eve authentication and environment variables. |
-| Neon Postgres | Campaign documents, media metadata, render operations and export receipts | Replace synchronous local SQLite access with an asynchronous transactional store. Use a dedicated test branch/project and row locking or version checks to preserve concurrent-edit and duplicate-render protection. |
-| Private Vercel Blob | Uploaded references, H3 takes, extracted frames and final exports | Replace filesystem paths with object IDs; authorize media reads/uploads and stream or sign downloads. |
-| Vercel Sandbox media worker | FFmpeg/ffprobe extraction, normalization and MP4 assembly | Package the binaries, stage authorized files, run fixed commands and persist the outputs to Blob before reporting success. Have eve workflow steps track processing jobs. |
-| Deployment access policy | Chosen by the person hosting their instance | Keep provider keys server-side. Choose app authentication or deployment protection covering every API/agent route if access should be restricted. A shared password is one option, not a template requirement. |
-| Your MiniMax text + video credentials and model IDs | Actual model calls | Set the environment variables from `.env.example` on your own deployment and confirm model entitlement. Keep the preconfigured MiniMax endpoints. TwitterAPI.io is optional when users supply a reference. |
+```sh
+vercel blob create-store film-studio-media --access private --region iad1 --yes
+```
 
-Neon stores structured project state; video bytes belong in object storage. Keep the current local adapter for people running the template on their own machines. A hosted starter can keep one shared studio for trusted users; independent user accounts and project isolation are a separate product scope.
+The CLI adds Blob credentials to your local environment while preserving your MiniMax settings. The production and preview environments must point at the same intended private store for their brand assets.
 
-For the first hosted test, use a supplied video/upload so social-platform retrieval is not a prerequisite. Add server-enforced render/concurrency limits, job-level logs, bounded retries and an explicit recovery path for uncertain H3 submissions. Do not automatically resubmit a paid render when its status is unknown or when only the export failed.
+## Configure and migrate
 
-## Verification before sharing a hosted URL
+The setup helper reads the linked Vercel project, verifies its protection policy, and transfers only the supported environment variables over stdin. It never prints credential values. Production uses the production database; preview uses the isolated test branch.
 
-1. The deployer's chosen access policy covers the UI, API mutations, media and eve streams. For a restricted instance, verify an unauthenticated request cannot use its credentials.
-2. Refreshing or closing the browser during H3 generation preserves the saved task and resumes progress without a second submission.
-3. An export failure can be retried using existing takes.
-4. Media and campaign state survive deployment/restart; a final MP4 plays and downloads.
-5. A second render request cannot bypass the per-studio budget or duplicate a running job.
+```sh
+node scripts/configure-vercel-env.mjs
+node --env-file=.env.neon-test.local scripts/migrate.mjs
+node --env-file=.env.neon-test.local --import tsx scripts/check-postgres.ts
+node --env-file=.env.deploy.local scripts/migrate.mjs
+node --env-file=.env.local scripts/upload-brand-assets.mjs
+```
+
+You can also configure variables in Vercel's dashboard instead of using the helper. Hosted mode needs `DATABASE_URL`, private Blob credentials, `STUDIO_STORAGE=cloud`, and the explicitly verified deployment-protection flag, alongside your MiniMax credentials. `STUDIO_HOST` may name a custom studio hostname. Standard Vercel deployment and production hostnames are recognized automatically.
+
+Keep credentials server-side. This template does not accept visitors' API keys through a browser form. TwitterAPI.io is optional when users supply a reference.
+
+## Stage, verify, and release
+
+```sh
+vercel deploy --prod --skip-domain
+vercel curl /api/status --deployment <deployment-url>
+vercel curl /eve/v1/health --deployment <deployment-url>
+node scripts/check-hosted-agent.mjs <deployment-url>
+vercel promote <deployment-url>
+```
+
+Before promoting, test the browser flow: attach a video, submit a brief, verify source analysis and subagent activity, render through H3, reload while waiting, and download the final MP4. A successful build alone does not verify model entitlement or video export.
+
+Uploads go directly to private Blob using restricted upload tokens, then the server validates metadata and registers the source. Runtime `/tmp` files are disposable caches: generated takes and finished exports are persisted to Blob before their receipts are committed. Campaign mutations use Postgres transactions and row locks; a paid render reservation is committed before submitting to H3. Uncertain provider submissions must be recovered by task ID, not automatically resubmitted.
+
+The default hosted function duration is bounded to 300 seconds. H3 waiting uses Workflow sleeps rather than holding a function open. The starter targets short launch films; larger edits may need a separate media worker or different function resources.
 
 ## References
 
-- [eve chat starter and optional production modes](https://eve.dev/templates/eve-chat-template)
 - [eve deployment](https://eve.dev/docs/guides/deployment/vercel)
 - [Vercel Blob](https://vercel.com/docs/vercel-blob)
-- [Vercel Sandbox](https://vercel.com/docs/sandbox)
+- [Vercel deployment protection](https://vercel.com/docs/deployment-protection)
+- [Vercel function limits](https://vercel.com/docs/functions/limitations)

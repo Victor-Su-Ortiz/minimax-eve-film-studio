@@ -36,7 +36,7 @@ test("moving co-brand export retains motion, exact duration and previous cuts, a
   const source = await registerUpload(
     new File([await readFile(fixture)], "moving.mp4", { type: "video/mp4" }),
   );
-  mutateProject((p) => {
+  await mutateProject((p) => {
     p.shots = [
       {
         ...p.shots[0],
@@ -80,18 +80,18 @@ test("moving co-brand export retains motion, exact duration and previous cuts, a
     ]);
   assert.notDeepEqual(frame("3.2"), frame("3.8"));
   assert.equal((await assembleCut({ finish: "moving-cobrand" })).id, result.id);
-  mutateProject((p) => {
+  await mutateProject((p) => {
     p.shots[0].duration = 5;
   });
   await assert.rejects(
     assembleCut({ finish: "moving-cobrand" }),
     /cannot freeze/,
   );
-  assert.equal(getProject().cuts.length, 1);
+  assert.equal((await getProject()).cuts.length, 1);
 });
 
 test("corner mark can be removed without changing the closing co-brand lockup", async () => {
-  mutateProject((p) => {
+  await mutateProject((p) => {
     const first = { ...p.shots[0], duration: 4 };
     p.shots = [first, { ...first, id: "shot_finish" }];
   });

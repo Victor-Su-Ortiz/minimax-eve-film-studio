@@ -5,6 +5,7 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import { createHash, randomUUID } from "node:crypto";
 import { binary } from "./config";
+import { ensureMedia, persistMedia } from "./media-storage";
 import { event, getProject, mediaPath, mutateProject } from "./store";
 import type { Asset } from "./domain";
 import { officialBrandSource } from "./brand-assets";
@@ -82,7 +83,8 @@ export async function registerUpload(file: File, sourceUrl?: string) {
     };
     if (file.type.startsWith("video/") && !metadata.width)
       throw new Error("This file has no readable video stream.");
-    mutateProject((p) => {
+    await persistMedia(id);
+    await mutateProject((p) => {
       p.assets.push(asset);
       event(p, "asset.uploaded", `Added ${asset.name}`);
     });
@@ -94,7 +96,7 @@ export async function registerUpload(file: File, sourceUrl?: string) {
 }
 
 export async function referenceContent(ids: string[]) {
-  const project = getProject();
+  const project = await getProject();
   const content: Record<string, unknown>[] = [];
   let totalBytes = 0;
   let videos = 0,
@@ -105,6 +107,7 @@ export async function referenceContent(ids: string[]) {
   for (const id of ids) {
     const asset = project.assets.find((a) => a.id === id);
     if (!asset) throw new Error("A reference asset is missing.");
+    await ensureMedia(id);
     const isImage = asset.mime.startsWith("image/");
     const isVideo = asset.mime.startsWith("video/");
     const isAudio = asset.mime.startsWith("audio/");
@@ -221,12 +224,13 @@ export async function sampleAsset(
   id: string,
   mode: "review" | "campaign" | "trend" = "review",
 ) {
-  const asset = getProject().assets.find((a) => a.id === id);
+  const asset = (await getProject()).assets.find((a) => a.id === id);
   if (!asset) throw new Error("Asset not found.");
   if (!asset.mime.startsWith("image/") && !asset.mime.startsWith("video/"))
     throw new Error(
       "Visual inspection accepts images and video. Audio needs a listening pass.",
     );
+  await ensureMedia(id);
   const duration = asset.duration || 1;
   const times = asset.mime.startsWith("image/")
     ? [0]
