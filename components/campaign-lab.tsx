@@ -127,7 +127,7 @@ export function CampaignLab({
         </span>
         <span>
           <small>TRY A CREATIVE STARTING POINT</small>
-          <strong>Dancing dogs. A MiniMax reveal.</strong>
+          <strong>Dancing dogs. Your next campaign.</strong>
           <em>Unexpected lead → dance cue → bigger stage → loop</em>
         </span>
         <ArrowRight size={17} />

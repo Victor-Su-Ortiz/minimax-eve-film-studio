@@ -25,7 +25,8 @@ import {
   visualReferenceBytes,
   referenceContent,
 } from "../lib/media";
-import { loadBrandAssets, brandPath, brandSignature } from "../lib/brand";
+import { getBrandAssets, setBrandAssets } from "../lib/brand";
+import sharp from "sharp";
 import { setSoundtrack } from "../lib/soundtrack";
 import {
   inspectTrendCandidate,
@@ -91,9 +92,14 @@ before(async () => {
 });
 beforeEach(async () => {
   // Existing tests cover the original manual studio as well as the new flow below.
-  await mutateProject((p) =>
-    Object.assign(p, initialProject(), { production: { mode: "manual" } }),
-  );
+  await mutateProject((p) => {
+    const initial = initialProject();
+    for (const shot of initial.shots)
+      shot.prompt = "Test-authored production prompt. No text or logos.";
+    for (const key of Object.keys(p))
+      delete (p as unknown as Record<string, unknown>)[key];
+    Object.assign(p, initial, { production: { mode: "manual" } });
+  });
 });
 after(async () => {
   await rm(directory, { recursive: true, force: true });
@@ -1028,25 +1034,30 @@ test("uploaded media is validated and visual review returns four real frames", a
   assert.equal((await getProject()).assets.length, 1);
 });
 
-test("Figma artwork is a real H3 image reference without changing campaign evidence or takes", async () => {
+test("brand kits start empty and only user uploads become H3 brand references", async () => {
+  assert.equal((await getBrandAssets()).assets.length, 0);
+  const bytes = await sharp({
+    create: { width: 640, height: 320, channels: 4, background: "#ff4422" },
+  })
+    .png()
+    .toBuffer();
+  const asset = await registerUpload(
+    new File([new Uint8Array(bytes)], "my-brand.png", { type: "image/png" }),
+  );
+  assert.equal(asset.origin, "upload");
   const before = await getProject();
-  const kit = await loadBrandAssets();
-  const afterLoad = await getProject();
-  assert.deepEqual(afterLoad.campaign, before.campaign);
-  assert.deepEqual(afterLoad.shots, before.shots);
-  assert.deepEqual(afterLoad.jobs, before.jobs);
-  assert.equal(afterLoad.assets.filter((a) => a.origin === "brand").length, 1);
-  const bytes = await readFile(brandPath("background"));
-  assert.deepEqual(await readFile(mediaPath(kit.reference.assetId)), bytes);
-  const references = await referenceContent([kit.reference.assetId]);
-  assert.match(JSON.stringify(references), /image_url/);
+  await setBrandAssets({ name: "Acme", assetIds: [asset.id] });
+  const kit = await getBrandAssets();
+  assert.equal(kit.name, "Acme");
+  assert.equal(kit.assets[0].id, asset.id);
+  assert.deepEqual((await getProject()).shots, before.shots);
+  assert.deepEqual((await getProject()).jobs, before.jobs);
+  const references = await referenceContent([asset.id]);
   assert.ok(JSON.stringify(references).includes(bytes.toString("base64")));
-  assert.ok(Buffer.from(kit.preview.data, "base64").length < 3 * 1024 * 1024);
-  await loadBrandAssets();
-  assert.deepEqual(
-    await getProject(),
-    afterLoad,
-    "Reloading the kit is idempotent",
+  assert.ok(Buffer.from(kit.previews[0].data, "base64").length > 0);
+  await assert.rejects(
+    setBrandAssets({ name: "Acme", assetIds: ["invented"] }),
+    /user-uploaded/,
   );
 });
 
@@ -1143,25 +1154,31 @@ test("a social import can fill the tenth campaign source slot", async () => {
 
 test("three uploaded brand assets do not prevent importing and inspecting a chosen scout video", async () => {
   const brands: string[] = [];
-  for (const [index, role] of ["wordmark", "lockup", "background"].entries()) {
-    const bytes = await readFile(
-      brandPath(role as "wordmark" | "lockup" | "background"),
-    );
+  for (let index = 0; index < 3; index++) {
+    const bytes = await sharp({
+      create: {
+        width: 80,
+        height: 40,
+        channels: 4,
+        background: ["#ff2200", "#22ff00", "#0022ff"][index],
+      },
+    })
+      .png()
+      .toBuffer();
     const asset = await registerUpload(
-      new File([new Uint8Array(bytes)], `renamed-${index}.png`, {
+      new File([new Uint8Array(bytes)], `logo-${index}.png`, {
         type: "image/png",
       }),
     );
     assert.equal(
       asset.origin,
-      "brand",
-      "Recognition must use content, not the filename",
+      "upload",
+      "Uploads must never be classified by a preloaded brand fingerprint",
     );
     brands.push(asset.id);
   }
-  // Reproduce a campaign created before brand upload classification existed.
+  await setBrandAssets({ name: "A user’s brand", assetIds: brands });
   await mutateProject((p) => {
-    for (const asset of p.assets) asset.origin = "upload";
     p.campaign = {
       ...dancingDogsExample(),
       urls: [],
@@ -1218,6 +1235,8 @@ test("briefs persist, an actual MP4 exports, and range requests support playback
   });
   assert.equal(saved.status, 200);
   assert.equal((await getProject()).brief, "A verified launch brief.");
+  assert.equal((await post({ action: "brief", brief: "" })).status, 200);
+  assert.equal((await getProject()).brief, "");
   const asset = await registerUpload(
     new File([new Uint8Array(fixture)], "source.mp4", { type: "video/mp4" }),
   );
@@ -1240,8 +1259,11 @@ test("briefs persist, an actual MP4 exports, and range requests support playback
     JSON.stringify(await exported.clone().json()),
   );
   const { cut } = await exported.json();
-  assert.equal(cut.branding.signature, await brandSignature());
-  assert.equal(cut.branding.name, "MiniMax M3.1 Flash");
+  assert.equal(
+    cut.branding,
+    undefined,
+    "Default exports must have no brand overlay",
+  );
   assert.equal(cut.audioCheck.sourceClipAudioIncluded, false);
   assert.equal(cut.audioCheck.method, "synthesized-instruments");
   const { probe } = await import("../lib/media");
@@ -1311,6 +1333,7 @@ test("source soundtrack uses the original recording once unless looping is expli
     p.shots = [p.shots[0], p.shots[3]].map((s) => ({ ...s, duration: 4 }));
   });
   await post({ action: "assign", shotId: "shot_brief", assetId: asset.id });
+  await post({ action: "assign", shotId: "shot_reveal", assetId: asset.id });
   const sourceSettings = {
     mode: "source" as const,
     sourceAssetId: asset.id,
@@ -1391,11 +1414,7 @@ test("source soundtrack uses the original recording once unless looping is expli
   const short = (await shortResponse.json()).cut;
   assert.equal(short.audioCheck.fit, "match-source");
   assert.equal(short.audioCheck.playback, "once");
-  assert.equal(
-    short.edit.length,
-    2,
-    "Keep both the footage scene and title card",
-  );
+  assert.equal(short.edit.length, 2, "Keep both moving footage scenes");
   assert.ok(
     Math.abs((await probe(mediaPath(short.assetId))).duration! - 4) < 0.1,
   );
@@ -1697,7 +1716,7 @@ test("automatic production waits for the human reference choice, not a scout imp
   );
 });
 
-test("one reference choice runs all reviewed takes through an automatic branded MP4 export without acceptance calls", async () => {
+test("one reference choice runs all reviewed takes through an automatic clean MP4 export without acceptance calls", async () => {
   await prepareAutomaticProduction();
   const provider = successfulVideoProvider();
   const scenes = (await getProject()).shots.filter(
@@ -1737,9 +1756,9 @@ test("one reference choice runs all reviewed takes through an automatic branded 
     assert.equal(result.shot.locked, true);
     if (result.cut) exported = result.cut;
   }
-  assert.equal(provider.submissions(), 3);
+  assert.equal(provider.submissions(), 4);
   assert.ok(exported, "The final selection must export automatically");
-  assert.equal(exported.branding!.name, "MiniMax M3.1 Flash");
+  assert.equal(exported.branding, undefined);
   assert.equal(exported.audioCheck!.generatedClipAudioIncluded, false);
   const metadata = await probe(mediaPath(exported.assetId));
   assert.equal(metadata.width, 1080);

@@ -4,20 +4,25 @@ import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import sharp from "sharp";
 
-const directory = await mkdtemp(path.join(tmpdir(), "minimax-cobrand-test-"));
+const directory = await mkdtemp(path.join(tmpdir(), "campaign-brand-test-"));
 process.env.STUDIO_DATA_DIR = directory;
 const { assembleCut } = await import("../lib/assembly");
 const { binary } = await import("../lib/config");
 const { registerUpload, probe } = await import("../lib/media");
 const { getProject, mutateProject, mediaPath } = await import("../lib/store");
+const { setBrandAssets, getBrandAssets } = await import("../lib/brand");
 after(() => rm(directory, { recursive: true, force: true }));
+let logoId: string;
 
-test("moving co-brand export retains motion, exact duration and previous cuts, and rejects title cards or frozen tails", async () => {
-  await assert.rejects(
-    assembleCut({ finish: "moving-cobrand" }),
-    /actual footage/,
-  );
+test("a new studio has no brand assets and clean exports need no bundled kit", async () => {
+  const initial = await getProject();
+  assert.equal(initial.brief, "");
+  assert.equal(initial.brandKit, undefined);
+  assert.equal(initial.assets.length, 0);
+  assert.ok(initial.shots.every((s) => !s.prompt && s.kind === "generated"));
+  assert.equal((await getBrandAssets()).assets.length, 0);
   const fixture = path.join(directory, "moving.mp4");
   execFileSync(binary("ffmpeg"), [
     "-v",
@@ -40,7 +45,6 @@ test("moving co-brand export retains motion, exact duration and previous cuts, a
     p.shots = [
       {
         ...p.shots[0],
-        kind: "generated",
         duration: 4,
         takes: [
           {
@@ -55,54 +59,44 @@ test("moving co-brand export retains motion, exact duration and previous cuts, a
     ];
     p.soundtrack = { mode: "silent", mood: "cinematic", tempo: 112 };
   });
-  const result = await assembleCut({ finish: "moving-cobrand" });
-  assert.equal(result.branding?.name, "MiniMax M3.1 Flash × Vercel");
-  const metadata = await probe(mediaPath(result.assetId));
+  const clean = await assembleCut();
+  assert.equal(clean.branding, undefined);
+  assert.equal((await assembleCut()).id, clean.id);
+  const metadata = await probe(mediaPath(clean.assetId));
   assert.ok(Math.abs(metadata.duration! - 4) < 0.1);
   assert.equal(metadata.hasAudio, false);
-  const frame = (second: string) =>
-    execFileSync(binary("ffmpeg"), [
-      "-v",
-      "error",
-      "-ss",
-      second,
-      "-i",
-      mediaPath(result.assetId),
-      "-frames:v",
-      "1",
-      "-vf",
-      "crop=iw:ih/2:0:ih/2,scale=90:80",
-      "-f",
-      "rawvideo",
-      "-pix_fmt",
-      "rgb24",
-      "pipe:1",
-    ]);
-  assert.notDeepEqual(frame("3.2"), frame("3.8"));
-  assert.equal((await assembleCut({ finish: "moving-cobrand" })).id, result.id);
-  await mutateProject((p) => {
-    p.shots[0].duration = 5;
-  });
-  await assert.rejects(
-    assembleCut({ finish: "moving-cobrand" }),
-    /cannot freeze/,
+  assert.equal(
+    (await getProject()).assets.some((a) => a.origin === "brand"),
+    false,
   );
-  assert.equal((await getProject()).cuts.length, 1);
 });
 
-test("corner mark can be removed without changing the closing co-brand lockup", async () => {
+test("only the uploaded logo is applied over the moving ending; it can be removed and earlier exports stay intact", async () => {
+  const bytes = await sharp({
+    create: { width: 180, height: 60, channels: 4, background: "#ff1800" },
+  })
+    .png()
+    .toBuffer();
+  const logo = await registerUpload(
+    new File([new Uint8Array(bytes)], "acme-logo.png", { type: "image/png" }),
+  );
+  logoId = logo.id;
+  await assert.rejects(
+    assembleCut({ finish: "brand-overlay", logoAssetId: logoId }),
+    /user-supplied brand kit/,
+  );
+  await setBrandAssets({ name: "Acme", assetIds: [logoId] });
   await mutateProject((p) => {
-    const first = { ...p.shots[0], duration: 4 };
-    p.shots = [first, { ...first, id: "shot_finish" }];
+    p.shots = [p.shots[0], { ...p.shots[0], id: "shot_finish" }];
   });
-  const marked = await assembleCut({ finish: "moving-cobrand" });
-  const clean = await assembleCut({
-    finish: "moving-cobrand",
-    cornerWatermark: false,
+  const clean = await assembleCut();
+  const branded = await assembleCut({
+    finish: "brand-overlay",
+    logoAssetId: logoId,
   });
-  assert.notEqual(marked.visualSignature, clean.visualSignature);
-  assert.equal(clean.branding?.cornerWatermark, false);
-  assert.equal(clean.branding?.name, "MiniMax M3.1 Flash × Vercel");
+  assert.equal(branded.branding?.name, "Acme");
+  assert.equal(branded.branding?.cornerWatermark, false);
+  assert.notEqual(clean.visualSignature, branded.visualSignature);
   const crop = (id: string, time: string, area: string) =>
     execFileSync(binary("ffmpeg"), [
       "-v",
@@ -121,17 +115,41 @@ test("corner mark can be removed without changing the closing co-brand lockup", 
       "rawvideo",
       "pipe:1",
     ]);
-  assert.notDeepEqual(
-    crop(marked.assetId, "1", "crop=300:180:0:0"),
-    crop(clean.assetId, "1", "crop=300:180:0:0"),
-  );
   assert.deepEqual(
-    crop(marked.assetId, "7", "crop=1080:500:0:0,scale=540:250"),
-    crop(clean.assetId, "7", "crop=1080:500:0:0,scale=540:250"),
+    crop(clean.assetId, "1", "crop=500:300:250:0"),
+    crop(branded.assetId, "1", "crop=500:300:250:0"),
+  );
+  assert.notDeepEqual(
+    crop(clean.assetId, "7", "crop=500:300:250:0"),
+    crop(branded.assetId, "7", "crop=500:300:250:0"),
+  );
+  assert.notDeepEqual(
+    crop(branded.assetId, "7.2", "crop=400:400:750:600"),
+    crop(branded.assetId, "7.8", "crop=400:400:750:600"),
   );
   assert.equal(
-    (await assembleCut({ finish: "moving-cobrand", cornerWatermark: false }))
-      .id,
-    clean.id,
+    (await assembleCut({ finish: "brand-overlay", logoAssetId: logoId })).id,
+    branded.id,
   );
+  const removed = await assembleCut();
+  assert.equal(removed.branding, undefined);
+  assert.ok((await getProject()).cuts.some((c) => c.id === branded.id));
+  assert.deepEqual(
+    crop(clean.assetId, "7", "scale=100:100"),
+    crop(removed.assetId, "7", "scale=100:100"),
+  );
+});
+
+test("a logo finish cannot hide missing footage with a frozen tail or a preloaded title card", async () => {
+  await mutateProject((p) => {
+    p.shots.at(-1)!.duration = 5;
+  });
+  await assert.rejects(
+    assembleCut({ finish: "brand-overlay", logoAssetId: logoId }),
+    /cannot freeze/,
+  );
+  await mutateProject((p) => {
+    p.shots.at(-1)!.kind = "title";
+  });
+  await assert.rejects(assembleCut(), /real footage/);
 });

@@ -11,9 +11,9 @@ const geist = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "MiniMax Campaign Studio — Powered by eve",
+  title: "Campaign Studio — Powered by eve",
   description:
-    "Decode a social campaign. Direct an original MiniMax M3.1 launch film with H3 and eve.",
+    "Decode a social campaign. Create an original film for your brand with M3.1, H3 and eve.",
 };
 export default function RootLayout({
   children,

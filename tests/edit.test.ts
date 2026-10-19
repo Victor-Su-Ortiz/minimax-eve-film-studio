@@ -34,7 +34,7 @@ function projectWithFootage() {
   return project;
 }
 
-test("a 24.832-second soundtrack fits available 6/8/7-second footage and an end card", () => {
+test("a 24.832-second soundtrack fits available 6/8/7-second footage and a moving finale", () => {
   const project = projectWithFootage();
   const before = structuredClone(project);
   const edit = sourceLengthEdit(project, 24.832);
@@ -50,7 +50,7 @@ test("a 24.832-second soundtrack fits available 6/8/7-second footage and an end 
   }
   assert.ok(
     edit[3].duration >= 3,
-    "Keep a readable brand finish instead of stretching the payoff",
+    "Keep the final moving scene instead of stretching the payoff",
   );
   assert.deepEqual(project, before);
 });
@@ -63,8 +63,7 @@ test("short audio retains all scenes; a full-length source preserves their capac
     6.25,
   );
   assert.ok(short.every((shot) => shot.duration >= 0.25));
-  assert.ok(short[2].duration > short[0].duration);
-  assert.ok(short[3].duration <= 1);
+  assert.ok(short[3].duration > short[0].duration);
   assert.deepEqual(
     sourceLengthEdit(project, 26).map((s) => s.duration),
     [6, 8, 7, 5],

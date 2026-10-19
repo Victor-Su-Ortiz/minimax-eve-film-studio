@@ -184,7 +184,7 @@ export async function startNewCampaign(expectedUpdatedAt: string) {
     for (const [index, shot] of fresh.shots.entries()) {
       if (shot.kind === "title") continue;
       shot.kind = "generated";
-      shot.title = ["Opening", "Build", "Payoff"][index];
+      shot.title = ["Opening", "Build", "Payoff", "Closing"][index];
       shot.description = "To be planned from your brief.";
       shot.prompt = "";
     }

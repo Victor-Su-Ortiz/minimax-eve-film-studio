@@ -21,7 +21,7 @@ export const campaignBriefInput = z.object({
     .array(z.string())
     .max(MAX_CAMPAIGN_REFERENCES + 9)
     .describe(
-      `Campaign source references. Up to ${MAX_CAMPAIGN_REFERENCES} non-brand assets; official MiniMax artwork is kept separately in the brand kit.`,
+      `Campaign source references. Up to ${MAX_CAMPAIGN_REFERENCES} non-brand assets; user-supplied brand artwork is kept separately in the brand kit.`,
     ),
   ratio: z.enum(["9:16", "16:9"]),
 });
@@ -79,8 +79,8 @@ export function emptyCampaign(): CampaignBrief {
     title: "A campaign worth decoding",
     urls: [],
     notes: "",
-    brand: "MiniMax M3.1",
-    goal: "Create a 30-second MiniMax M3.1 launch film from the creative structure of a social campaign. M3.1 develops the concept and directs; H3 generates the footage. Use only approved launch facts.",
+    brand: "Unspecified",
+    goal: "Create an original campaign film from the user’s brief and supplied references. Use only the user’s brand assets and approved product facts.",
     assetIds: [],
     ratio: "9:16",
     revision: 0,
@@ -92,10 +92,10 @@ export function dancingDogsExample(): CampaignBriefInput {
   const { revision: _, ...base } = emptyCampaign();
   return {
     ...base,
-    title: "Dancing dogs → a MiniMax launch",
+    title: "Dancing dogs → an original campaign",
     urls: ["https://www.tiktok.com/@king_odiee/video/7692606728323583246"],
     notes:
       "This source link is a lead to retrieve and inspect. Import its actual video before asserting choreography, cuts or timing. Search recent related videos to establish context. Treat proposed reasons for engagement as hypotheses.",
-    goal: "Retrieve and study the actual dancing-dog video, then create an original MiniMax M3.1 launch film from its visual mechanism. Show related real videos with dated engagement counts. Let the user choose the initial reference video, then choose the creative direction and complete all scenes, reviews, take selection and final export automatically. Use original audio and an authored MiniMax M3.1 title. Preserve accepted footage.",
+    goal: "Retrieve and study the actual dancing-dog video, then create an original campaign film from its visual mechanism. Show related real videos with dated engagement counts. Let the user choose the initial reference video, then choose the creative direction and complete all scenes, reviews, take selection and final export automatically. Use original audio and the user’s supplied branding. Preserve accepted footage.",
   };
 }

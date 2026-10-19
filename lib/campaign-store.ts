@@ -8,7 +8,7 @@ import {
 } from "./campaign";
 import { event, getProject, mutateProject } from "./store";
 import { sampleAsset } from "./media";
-import { isBrandAsset, officialBrandSource } from "./brand-assets";
+import { isBrandAsset } from "./brand-assets";
 import { MAX_CAMPAIGN_REFERENCES } from "./reference-limits";
 
 export async function saveCampaignBrief(value: CampaignBriefInput) {
@@ -28,10 +28,6 @@ export async function saveCampaignBrief(value: CampaignBriefInput) {
       throw new Error(
         `Choose at most ${MAX_CAMPAIGN_REFERENCES} campaign source references. Brand artwork is kept separately.`,
       );
-    for (const asset of p.assets) {
-      const sourceUrl = officialBrandSource(asset.sha256);
-      if (sourceUrl) Object.assign(asset, { origin: "brand", sourceUrl });
-    }
     const current = p.campaign || emptyCampaign();
     const { revision: _, ...previous } = current;
     if (p.campaign && JSON.stringify(previous) === JSON.stringify(input))

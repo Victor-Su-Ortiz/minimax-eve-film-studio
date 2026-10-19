@@ -8,7 +8,6 @@ import { binary } from "./config";
 import { ensureMedia, persistMedia } from "./media-storage";
 import { event, getProject, mediaPath, mutateProject } from "./store";
 import type { Asset } from "./domain";
-import { officialBrandSource } from "./brand-assets";
 
 const exec = promisify(execFile);
 export const MAX_UPLOAD = 32 * 1024 * 1024;
@@ -65,17 +64,14 @@ export async function registerUpload(file: File, sourceUrl?: string) {
   try {
     const metadata = await probe(mediaPath(id));
     const sha256 = createHash("sha256").update(bytes).digest("hex");
-    const brandSource = officialBrandSource(sha256);
     const asset: Asset = {
       id,
       name: file.name.replace(/[\x00-\x1f/\\]/g, "_").slice(0, 150),
       mime: file.type,
       size: bytes.length,
       sha256,
-      origin: brandSource ? "brand" : sourceUrl ? "social" : "upload",
-      ...(brandSource || sourceUrl
-        ? { sourceUrl: brandSource || sourceUrl }
-        : {}),
+      origin: sourceUrl ? "social" : "upload",
+      ...(sourceUrl ? { sourceUrl } : {}),
       createdAt: new Date().toISOString(),
       width: metadata.width,
       height: metadata.height,

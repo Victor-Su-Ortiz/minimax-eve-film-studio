@@ -19,25 +19,15 @@ import { resolveSourceSoundtrack } from "./soundtrack";
 import { sourceLengthEdit } from "./edit";
 import { applyShotEdits } from "./shot-edit";
 import { exportStyleInput, type ExportStyle } from "./export-style";
-import {
-  BRAND_NAME,
-  BRAND_SOURCE,
-  brandSignature,
-  prepareBrandLayers,
-  renderBrandTitle,
-  prepareCoBrandLayer,
-} from "./brand";
+import { customBranding, prepareLogoLayer } from "./brand";
 
 const exec = promisify(execFile);
 export async function assembleCut(options?: ExportStyle) {
   const style = exportStyleInput.parse(options || {});
   const project = await getProject();
-  if (
-    style.finish === "moving-cobrand" &&
-    project.shots.some((s) => s.kind === "title")
-  )
+  if (project.shots.some((s) => s.kind === "title"))
     throw new Error(
-      "A moving co-brand finish needs actual footage for every scene. Replace the title shot with a generated continuation, render and review it, then export again. Plan enough moving footage to cover the soundtrack.",
+      "Exports need real footage for every scene. Replace legacy title-card shots with a source clip or generated continuation, then export again. No brand cards are preloaded.",
     );
   const soundtrack = projectSoundtrack(project);
   const sourceAudio = await resolveSourceSoundtrack(project, soundtrack);
@@ -62,13 +52,10 @@ export async function assembleCut(options?: ExportStyle) {
   );
   const ratio = projectRatio(project);
   const [width, height] = ratio === "9:16" ? [1080, 1920] : [1920, 1080];
-  const branding = {
-    name:
-      style.finish === "moving-cobrand" ? `${BRAND_NAME} × Vercel` : BRAND_NAME,
-    sourceUrl: BRAND_SOURCE,
-    signature: await brandSignature(),
-    cornerWatermark: style.cornerWatermark,
-  };
+  const branding =
+    style.finish === "brand-overlay"
+      ? await customBranding(project, style.logoAssetId!)
+      : undefined;
   const inputs = project.shots.map((original) => {
     const excerpt = edit?.find((s) => s.shotId === original.id);
     const shot = excerpt
@@ -85,9 +72,9 @@ export async function assembleCut(options?: ExportStyle) {
     .update(
       JSON.stringify({
         ratio,
-        branding: branding.signature,
+        branding: branding?.signature || "clean-v1",
         finish: style.finish,
-        cornerWatermark: style.cornerWatermark,
+        logoAssetId: style.logoAssetId,
         shots: inputs.map(({ shot, assetId, start }) => [
           shot.id,
           shot.duration,
@@ -130,36 +117,23 @@ export async function assembleCut(options?: ExportStyle) {
   await mkdir(temporary, { recursive: true });
   try {
     if (!pictureSource) {
-      const brandLayers = await prepareBrandLayers(temporary, width, height);
-      const coBrandLayer =
-        style.finish === "moving-cobrand"
-          ? await prepareCoBrandLayer(temporary, width, height)
-          : undefined;
+      const logoLayer = branding
+        ? await prepareLogoLayer(temporary, style.logoAssetId!, width, height)
+        : undefined;
       const files: string[] = [];
       for (let i = 0; i < inputs.length; i++) {
         const { shot, assetId, start } = inputs[i];
         const output = path.join(temporary, `${i}.mp4`);
-        if (shot.kind === "title") {
-          await renderBrandTitle(
-            brandLayers,
-            output,
-            shot.duration,
-            width,
-            height,
-          );
-          files.push(output);
-          continue;
-        }
         const source = await ensureMedia(assetId!);
         const metadata = await probe(source);
-        const movingFinish = Boolean(coBrandLayer && i === inputs.length - 1);
+        const movingFinish = Boolean(logoLayer && i === inputs.length - 1);
         if (
           movingFinish &&
           (!metadata.duration ||
             metadata.duration - start + 1 / 24 < shot.duration)
         )
           throw new Error(
-            "The final moving scene is too short for the edit. Adjust its in-point or render enough footage; the co-brand finish cannot freeze the final frame.",
+            "The final moving scene is too short for the edit. Adjust its in-point or render enough footage; the logo finish cannot freeze the final frame.",
           );
         const args = [
           "-v",
@@ -177,11 +151,7 @@ export async function assembleCut(options?: ExportStyle) {
             "-i",
             "anullsrc=channel_layout=stereo:sample_rate=48000",
           );
-        const overlay = movingFinish
-          ? coBrandLayer!
-          : style.cornerWatermark
-            ? brandLayers.watermark
-            : undefined;
+        const overlay = movingFinish ? logoLayer : undefined;
         if (overlay) args.push("-loop", "1", "-framerate", "24", "-i", overlay);
         const baseFilter = `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=24${movingFinish ? "" : ",tpad=stop_mode=clone:stop_duration=15"}`;
         args.push(
@@ -360,7 +330,7 @@ export async function assembleCut(options?: ExportStyle) {
     };
     const asset: Asset = {
       id: assetId,
-      name: `minimax-m31-launch-${id.slice(0, 8)}.mp4`,
+      name: `campaign-film-${id.slice(0, 8)}.mp4`,
       mime: "video/mp4",
       origin: "export",
       size: bytes.length,

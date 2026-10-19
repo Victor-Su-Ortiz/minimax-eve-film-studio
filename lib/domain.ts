@@ -95,7 +95,7 @@ export type Cut = {
   visualSignature?: string;
   branding?: {
     name: string;
-    sourceUrl: string;
+    sourceUrl?: string;
     signature: string;
     cornerWatermark?: boolean;
   };
@@ -197,6 +197,7 @@ export type Project = {
   soundtrack?: Soundtrack;
   sessionId?: string;
   previousSessionIds?: string[];
+  brandKit?: { name: string; assetIds: string[] };
   campaign?: CampaignBrief;
   campaignAnalyses?: CampaignAnalysis[];
   campaignInspections?: CampaignInspection[];
@@ -220,54 +221,21 @@ export type ConnectionStatus = {
 
 export function initialProject(): Project {
   const shots: ShotInput[] = [
-    {
-      id: "shot_brief",
-      title: "The brief",
-      description:
-        "A real desk. One impossible assignment. You’re launching today. Introduce yourself.",
-      prompt: "",
-      duration: 5,
-      kind: "source",
-      referenceIds: [],
-    },
-    {
-      id: "shot_leap",
-      title: "The leap",
-      description:
-        "One familiar gesture carries us from an ordinary room into an extraordinary moving film set.",
-      prompt:
-        "A cinematic match cut from a real person at a desk into an enormous practical film set. Preserve the person, wardrobe and reaching hand gesture from the reference. Camera tracks smoothly forward. Scenery moves around the person, precise lighting, tangible materials, elegant restraint. No text or logos. Native ambient sound.",
-      duration: 10,
-      kind: "generated",
-      referenceIds: [],
-    },
-    {
-      id: "shot_world",
-      title: "Another world",
-      description:
-        "The same person. The same movement. A night train carries the idea somewhere new.",
-      prompt:
-        "The same person and wardrobe as the reference, continuing the reaching gesture inside a cinematic night train. A luminous city glides past the windows. Smooth forward tracking camera, controlled reflections, rich shadows, tactile cinematic realism. Preserve identity and movement. No text or logos. Native train ambience.",
-      duration: 10,
-      kind: "generated",
-      referenceIds: [],
-    },
-    {
-      id: "shot_reveal",
-      title: "Meet the director",
-      description:
-        "MiniMax M3.1. A launch film, directed with the model it introduces.",
-      prompt: "",
-      duration: 5,
-      kind: "title",
-      referenceIds: [],
-    },
-  ];
+    { id: "shot_brief", title: "Opening", duration: 5 },
+    { id: "shot_leap", title: "Build", duration: 10 },
+    { id: "shot_world", title: "Payoff", duration: 10 },
+    { id: "shot_reveal", title: "Closing", duration: 5 },
+  ].map((shot) => ({
+    ...shot,
+    description: "To be planned from your brief.",
+    prompt: "",
+    kind: "generated" as const,
+    referenceIds: [],
+  }));
   return {
     id: "m31-launch",
-    name: "Introduce yourself.",
-    brief:
-      "You are MiniMax M3.1. You’re launching today. Direct your own 30-second launch film. Start with footage of someone at a real desk, expand their ordinary movement into a cinematic world, then reveal that you directed it. Propose three treatments before generating. Use only supplied, approved launch facts. Keep the film tactile, surprising and unmistakably MiniMax. Let the user choose the initial reference, then render and review every scene and export the finished film automatically.",
+    name: "New campaign",
+    brief: "",
     treatments: [],
     shots: shots.map((s) => ({ ...s, locked: false, revision: 0, takes: [] })),
     assets: [],

@@ -1,6 +1,6 @@
-# MiniMax eve Film Studio
+# Campaign Studio
 
-A film studio that decodes a social campaign's creative structure and turns it into an original MiniMax M3.1 launch film. M3.1 develops the breakdown, treatments and shot plans; MiniMax H3 generates video; Vercel eve runs the director agent and durable render waits.
+A film studio that decodes a social campaign's creative structure and creates an original campaign for any brand. No brand kit, mascot, product claims or finished footage is preloaded. M3.1 develops the breakdown, treatments and shot plans; MiniMax H3 generates video; Vercel eve runs the director agent and durable render waits.
 
 Run locally with SQLite and local media, or deploy your own protected studio on Vercel with Neon and private Blob storage. See [hosted setup](docs/hosted-starter.md). Each installation is one shared studio for its trusted operators, not a multi-tenant service.
 
@@ -31,13 +31,13 @@ The preconfigured text endpoint is `https://api.minimax.io/anthropic/v1`; the vi
 
 ## Campaign to launch film
 
-The main page has one prompt box. Describe the campaign and the film you want, paste a source link, or attach up to 10 clips/images per message. A campaign can retain 10 source assets and 10 source links; official brand artwork is kept separately. The director selects a valid subset for each H3 shot; the provider's per-shot media and duration limits still apply. For example: “Make a cinematic 30-second MiniMax M3.1 launch film inspired by the dancing dogs trend. Start small, go unexpectedly big, and loop the ending.”
+The main page has one prompt box. Describe the campaign and the film you want, paste a source link, or attach up to 10 clips/images per message. A campaign can retain 10 source assets and 10 source links; user-supplied brand artwork is kept separately. The director selects a valid subset for each H3 shot; the provider's per-shot media and duration limits still apply. For example: “Make a playful 20-second launch film for my sparkling tea brand. Use this video for pacing and my uploaded logo and product images for our identity.”
 
 M3.1 interprets the request into a saved brief, develops a creative breakdown and visual direction cards, then waits for you to choose the initial source video. After that choice, it plans the sequence, renders all scenes, delegates frame review, selects usable takes and exports the film automatically. The output canvas shows actual tool activity, references, the proposed sequence, real rendered takes and the exported film. Keep directing in the same box: “Use the second idea,” “Make the opening quieter,” or “Change the ending.” The agent can select a direction from ordinary language. It chooses a sensible default when asked to make the film without further direction.
 
-Reference selection is the only normal checkpoint. There are no required take approvals or separate export clicks. The director may make one corrective render per scene; the final take selection automatically assembles the branded MP4. Optional **Revise** remains available after production, and previous takes stay preserved. A failed or uncertain provider job can still require attention. Final release means the downloadable MP4, not public posting. There is no simulated progress, canned model output or generated footage shown before the provider returns it. A missing connection saves the prompt and shows setup instructions without dispatching a model request.
+Reference selection is the only normal checkpoint. There are no required take approvals or separate export clicks. The director may make one corrective render per scene; the final take selection automatically assembles the MP4. Optional **Revise** remains available after production, and previous takes stay preserved. A failed or uncertain provider job can still require attention. Final release means the downloadable MP4, not public posting. There is no simulated progress, canned model output or generated footage shown before the provider returns it. A missing connection saves the prompt and shows setup instructions without dispatching a model request.
 
-The agent retrieves public TikTok and X video references from full post URLs, saves the original MP4 locally and displays source cards with attribution, publication dates and reported engagement counts. TwitterAPI.io retrieves up to six candidates above 100,000 reported views across up to three pages per search. The M3.1 scout downloads each candidate without changing the campaign, receives an eight-frame timestamped contact sheet, and records a visual verdict with evidence. Only matched, curated candidates enter recommendations; unavailable, uncertain, caption-only and low-view candidates cannot qualify.
+The agent retrieves public TikTok and X video references from full post URLs, persists the original MP4 in the configured media storage and displays source cards with attribution, publication dates and reported engagement counts. TwitterAPI.io retrieves up to six candidates above 100,000 reported views across up to three pages per search. The M3.1 scout downloads each candidate without changing the campaign, receives an eight-frame timestamped contact sheet, and records a visual verdict with evidence. Only matched, curated candidates enter recommendations; unavailable, uncertain, caption-only and low-view candidates cannot qualify.
 
 Retrieval words and the visual target are separate. The scout can search broader subjects, known creator feeds, or omit caption keywords entirely while retaining a visual target such as “a dog performing dance-like movements.” This makes generic-caption videos eligible for visual review, but it is bounded retrieval, not a visual index of all X videos. Sampled frames do not verify continuous motion or audio. The gallery shows review progress, match reasons and timestamped evidence. Search results are not a platform-wide trend ranking or proof of the original upload. TikTok extraction uses the official yt-dlp package and its normal public session, without using browser credentials. Install the project-local extractor with `npm run setup:video-import` and add `TWITTERAPI_IO_API_KEY` to `.env.local` for live X search.
 
@@ -49,13 +49,13 @@ In local development, credential access reads the current project `.env.local` s
 
 The detailed editor is preserved at [`/studio`](http://127.0.0.1:3000/studio) for manual shot controls, recovery and production history.
 
-**9:16 social** produces portrait H3 jobs and 1080 × 1920 MP4 exports. **16:9 widescreen** produces landscape jobs and 1920 × 1080 exports. Format is saved on each render job, and export reuse is keyed by format as well as shot choices. Existing takes are preserved; footage with a different shape is fitted and padded. The title card uses the official M3.1 Flash Figma lockup over animated flower artwork.
+**9:16 social** produces portrait H3 jobs and 1080 × 1920 MP4 exports. **16:9 widescreen** produces landscape jobs and 1920 × 1080 exports. Format is saved on each render job, and export reuse is keyed by format as well as shot choices. Existing takes are preserved; footage with a different shape is fitted and padded. No title card or logo is inserted by default.
 
-## MiniMax film branding
+## Your brand assets
 
-The supplied [M3.1 Flash Figma kit](https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1311-7298) is bundled under `public/brand/m31-flash`, with node provenance and SHA-256 hashes in `sources.json`. `get_brand_assets` shows the director the real launch hero and registers the text-free flower image as a reusable H3 reference. The director can include it in relevant shots’ `referenceIds` for the color, lighting and sculptural motif. Brand assets do not become social-reference evidence or change the campaign revision.
+Start with an empty campaign. Attach your own product art and logos, and describe how to use them in the same prompt. The director registers those images with `set_brand_assets`, inspects them with `get_brand_assets`, and can send the actual images as H3 references. Brand images stay separate from source footage and evidence. Files are never classified using a preloaded brand fingerprint.
 
-New exports composite the exact white MiniMax wordmark over footage and a stationary official M3.1 Flash lockup over a gently moving flower background. There is no extra tagline. Asset fingerprints version the picture cache, so branding updates cannot reuse an old unbranded export. Original takes and previous exports remain intact; audio-only edits reuse the branded pictures. Raw H3 takes do not include these precise overlays.
+Default MP4 exports are clean footage with the chosen soundtrack. For an exact supplied logo, `create_cut` accepts `finish=brand-overlay` and a registered `logoAssetId`; the image fades over the final four seconds of continuing footage. No MiniMax or Vercel logos, automatic watermark, fixed product title or flower card are added. Earlier takes and exports remain preserved.
 
 ## Detailed editor controls
 
@@ -64,9 +64,9 @@ New exports composite the exact white MiniMax wordmark over footage and a statio
 3. Pick a generated shot and add references from the library. Ask M3.1 to render that shot. H3’s task ID and status appear in **Activity**.
 4. Review the returned take and its sampled-frame review. Play it to check motion and audio. **Accept take** selects it and locks the shot.
 5. Unlock only the shot you want revised, then give a note with that shot selected. Compare the new take to the accepted take and accept it when ready.
-6. Assign your real opening footage with **Use footage**. Once every source/generated shot has an accepted take, **Export film** assembles the film into a downloadable 1080p MP4. The final title card uses the official M3.1 Flash Figma artwork. Download the last export from **Activity** or preview it with **Play last export**.
+6. Assign your real opening footage with **Use footage**. Once every source/generated shot has an accepted take, **Export film** assembles the film into a downloadable 1080p MP4. The final export uses only your requested, supplied branding. Download the last export from **Activity** or preview it with **Play last export**.
 
-The initial storyboard is a human-authored treatment, clearly labelled as concept boards. It is not generated footage or a claim that M3.1 has already directed the film. There are no simulated model responses or fake generation jobs.
+New storyboards have empty prompts and neutral scene slots until you describe your campaign. It is not generated footage or a claim that M3.1 has already directed the film. There are no simulated model responses or fake generation jobs.
 
 ## What is implemented
 
@@ -82,7 +82,7 @@ The initial storyboard is a human-authored treatment, clearly labelled as concep
 
 ## Reliability and limits
 
-Submissions reserve a unique operation in SQLite before calling H3. Replays reuse the saved operation. An uncertain submission blocks a new job for that shot; it does not automatically submit again. If the provider accepted a job but its response was lost, recover the task ID in the MiniMax console and attach it in **Activity**. A response lost between submission and persistence cannot be made exactly-once without provider-side idempotency.
+Submissions reserve a unique operation in the database before calling H3. Replays reuse the saved operation. An uncertain submission blocks a new job for that shot; it does not automatically submit again. If the provider accepted a job but its response was lost, recover the task ID in the MiniMax console and attach it in **Activity**. A response lost between submission and persistence cannot be made exactly-once without provider-side idempotency.
 
 H3 reference videos and audio must each be 2–15 seconds, with total reference duration at most 15 seconds per modality. Images and clip dimensions must match the current API limits. This local build accepts files up to 32 MB, uses inline reference data and bounds the encoded request size. Use MP4 for H3 video references; MOV is supported as source footage for assembly.
 
@@ -90,7 +90,7 @@ Visual review sends four timestamped still frames together in one contact sheet,
 
 In local mode, `.studio/` holds SQLite and media and `.eve/` holds eve’s local run state. Keep those folders for continuity. `STUDIO_DATA_DIR` can point to another absolute persistent local directory shared by both processes; do not run multiple local studios against the same directory. Hosted mode uses Neon transactions for campaign state and private Blob for media. `/tmp` is only a recoverable working cache. Uploaded files go directly to Blob before server-side validation. FFmpeg/ffprobe are packaged with the functions; a separate media service is not required for this starter. Hosted requests are admitted only when the deployment protection mode is explicitly configured. See [hosted setup](docs/hosted-starter.md).
 
-Live M3.1 and H3 calls require real credentials and were not verified during the initial build. The production tests use a test-only provider fixture and real FFmpeg media; that fixture is never available as an application mode.
+Live M3.1 and H3 calls require your own authorized credentials. The production tests use a test-only provider fixture and real FFmpeg media; that fixture is never available as an application mode.
 
 The current dependency audit reports a moderate, unpatched denial-of-service advisory in `sprintf-js`, inherited through the local `just-bash` sandbox package. Arbitrary agent shell tools are disabled in this application. Recheck the upstream fix before expanding execution capabilities or production deployment.
 

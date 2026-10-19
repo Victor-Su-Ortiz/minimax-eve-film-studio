@@ -37,19 +37,19 @@ import { uploadStudioFile } from "@/lib/upload-client";
 
 const examples = [
   {
-    label: "The dancing dogs launch",
+    label: "Launch something new",
     prompt:
-      "Find the real dancing dogs videos, show me the trend, and study the footage. Then make an original 30-second MiniMax M3.1 launch film inspired by it. Let me choose the reference video, then handle the direction, generation, reviews and final export automatically.",
+      "Find visually striking product-launch references for a new sparkling tea. Show me the real videos, then make an original 30-second campaign inspired by my selection. Let me choose the reference video, then handle the direction, generation, reviews and final export automatically.",
   },
   {
     label: "Remix a campaign",
     prompt:
-      "Break down the hook, pacing and payoff of this campaign, then reimagine its creative structure as an original MiniMax M3.1 launch film: ",
+      "Break down the hook, pacing and payoff of this campaign, then reimagine its creative structure as an original campaign for my brand: ",
   },
   {
     label: "Make the unexpected",
     prompt:
-      "Make an unexpected 30-second MiniMax M3.1 launch film. An ordinary idea becomes an impossible production. Find strong video references for me to choose from. After my choice, handle everything through the finished branded MP4.",
+      "Make an unexpected 30-second campaign for a new running shoe. An ordinary idea becomes an impossible production. Find strong video references for me to choose from. After my choice, handle everything through the finished branded MP4.",
   },
 ];
 const mediaUrl = (id: string) => `/api/media/${encodeURIComponent(id)}`;
@@ -394,15 +394,8 @@ function PromptWorkspace({
     <div className={`nl-app ${hasOutput ? "has-output" : ""}`}>
       {!hasOutput && <div className="nl-atmosphere" aria-hidden="true" />}
       <header className="nl-header">
-        <a href="/" className="nl-brand" aria-label="MiniMax studio home">
-          <img
-            className="nl-brand-logo"
-            src="/brand/minimax-white.webp"
-            width={349}
-            height={128}
-            alt="MiniMax"
-          />
-          <span className="nl-brand-divider" aria-hidden="true" />
+        <a href="/" className="nl-brand" aria-label="Campaign studio home">
+          <Clapperboard size={24} aria-hidden="true" />
           <span className="nl-brand-name">Studio</span>
         </a>
         <div className="nl-header-right">
@@ -451,7 +444,7 @@ function PromptWorkspace({
         {!hasOutput && (
           <section className="nl-welcome">
             <span className="nl-eyebrow">
-              <span /> MINIMAX M3.1 / CAMPAIGN STUDIO
+              <span /> YOUR CAMPAIGN STUDIO
             </span>
             <h1>
               See a campaign.
@@ -496,7 +489,7 @@ function PromptWorkspace({
             </div>
             <div className="nl-request">
               <span>YOU</span>
-              <p>{requests.at(-1)?.text || "Continue the launch film."}</p>
+              <p>{requests.at(-1)?.text || "Continue the campaign film."}</p>
             </div>
             {setup && (
               <ConnectionNote
@@ -531,34 +524,30 @@ function PromptWorkspace({
 
             <FilmCrew conversation={agent.data} />
 
-            {project.assets.some((asset) => asset.origin === "brand") && (
+            {project.brandKit && (
               <section className="nl-section">
                 <div className="nl-section-heading">
                   <Sparkles size={14} />
-                  <h2>The MiniMax look</h2>
-                  <span>Official launch artwork</span>
+                  <h2>{project.brandKit.name}</h2>
+                  <span>Your supplied brand artwork</span>
                 </div>
-                <figure className="nl-brand-direction">
-                  <img
-                    src="/brand/m31-flash/hero.png"
-                    width={1920}
-                    height={1080}
-                    alt="Official MiniMax M3.1 Flash lockup over the pink, orange and purple flower artwork"
-                  />
-                  <figcaption>
-                    <p>
-                      Flower, color and light for the scenes. The official logo
-                      and animated end card in your final film.
-                    </p>
-                    <a
-                      href="https://www.figma.com/design/OBZtbEFlEn8ilGAdqKpk5q?node-id=1311-7298"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      MiniMax brand kit <ExternalLink size={12} />
-                    </a>
-                  </figcaption>
-                </figure>
+                <div className="nl-brand-assets">
+                  {project.brandKit.assetIds.map((id) => {
+                    const asset = project.assets.find((a) => a.id === id);
+                    return asset ? (
+                      <figure key={id}>
+                        <img
+                          src={mediaUrl(id)}
+                          alt={asset.name}
+                          width={240}
+                          height={160}
+                          style={{ objectFit: "contain" }}
+                        />
+                        <figcaption>{asset.name}</figcaption>
+                      </figure>
+                    ) : null;
+                  })}
+                </div>
               </section>
             )}
 
@@ -576,7 +565,7 @@ function PromptWorkspace({
               }
               onChoose={(post) =>
                 void send(
-                  `Use this reference for my film: ${post.url}. Import and inspect the actual video, adapt it creatively to my brief and MiniMax assets, then create the complete film. Handle the direction, all H3 scenes, take reviews, take selection, soundtrack and final branded MP4 automatically. Do not pause for approvals. Preserve my soundtrack choice, existing selected footage and previous takes.`,
+                  `Use this reference for my film: ${post.url}. Import and inspect the actual video, adapt it creatively to my brief and supplied brand assets, then create the complete film. Handle the direction, all H3 scenes, take reviews, take selection, soundtrack and final branded MP4 automatically. Do not pause for approvals. Preserve my soundtrack choice, existing selected footage and previous takes.`,
                   [],
                   post.url,
                 )
@@ -1111,7 +1100,7 @@ function PromptWorkspace({
               placeholder={
                 hasOutput
                   ? "Make it stranger. Change the ending. Try another direction…"
-                  : "Turn the dancing dogs trend into a launch film for MiniMax M3.1…"
+                  : "Create a launch campaign for my brand using this reference…"
               }
               rows={hasOutput ? 2 : 3}
               maxLength={6000}

@@ -204,7 +204,7 @@ function Workspace({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "minimax-m31-production-log.json";
+    link.download = "campaign-production-log.json";
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -265,7 +265,7 @@ function Workspace({
       <div className="studio-app">
         <header className="topbar">
           <div className="wordmark">
-            MiniMax <span>studio</span>
+            Campaign <span>studio</span>
             <span className="beta">LAB</span>
           </div>
           <div className="topbar-divider" />
@@ -491,7 +491,7 @@ function Workspace({
                 onStoryboard={() => setTab("storyboard")}
                 onAnalyze={() =>
                   send(
-                    "Decode the latest saved campaign reference for our MiniMax M3.1 launch film. Read get_project, inspect attached campaign assets with inspect_campaign_reference, and save_campaign_analysis with the current sourceRevision. If only links and notes exist, label the result as a notes-only hypothesis; you cannot fetch or watch a linked post. Separate visible evidence from creative hypotheses. Then save exactly three distinctive launch-film treatments. Do not render or change locked shots.",
+                    "Decode the latest saved campaign reference for the user’s campaign film. Read get_project, inspect attached campaign assets with inspect_campaign_reference, and save_campaign_analysis with the current sourceRevision. If only links and notes exist, label the result as a notes-only hypothesis; you cannot fetch or watch a linked post. Separate visible evidence from creative hypotheses. Then save exactly three distinctive launch-film treatments. Do not render or change locked shots.",
                   )
                 }
               />
@@ -1188,21 +1188,19 @@ function ConceptFrame({ shot }: { shot: Shot }) {
       <div className="stage-orbit orbit-three" />
       <div className="light-beam" />
       <div className="floating-frame">
-        <span>m</span>
+        <span>▶</span>
         <i />
       </div>
       <div className="stage-type">
         <span>
-          {shot.kind === "title"
-            ? "MEET YOUR DIRECTOR"
-            : "THE MINIMAX M3.1 LAUNCH FILM"}
+          {shot.kind === "title" ? "YOUR CLOSING SCENE" : "YOUR CAMPAIGN FILM"}
         </span>
         <h2>
           {shot.kind === "title" ? (
             <>
-              MiniMax
+              Your
               <br />
-              <em>M3.1.</em>
+              <em>brand.</em>
             </>
           ) : (
             <>
@@ -1215,10 +1213,10 @@ function ConceptFrame({ shot }: { shot: Shot }) {
         <p>
           {shot.kind === "title"
             ? "An idea. A world. A launch."
-            : "A film, directed with the model it introduces."}
+            : "A scene shaped around your brief."}
         </p>
       </div>
-      <span className="stage-corner">M / 3.1</span>
+      <span className="stage-corner">CONCEPT</span>
       <span className="stage-cross cross-one">+</span>
       <span className="stage-cross cross-two">+</span>
     </div>
@@ -1255,7 +1253,7 @@ function AssetCard({
             : asset.origin === "social"
               ? "Imported reference"
               : asset.origin === "brand"
-                ? "MiniMax brand artwork"
+                ? "User-supplied brand artwork"
                 : "Uploaded"}{" "}
           · {(asset.size / 1024 / 1024).toFixed(1)} MB
           {asset.duration ? ` · ${asset.duration.toFixed(1)}s` : ""}
@@ -1397,8 +1395,8 @@ function DirectorChat({
             Direct what’s next.
           </h2>
           <p>
-            Turn a social reference into a MiniMax launch film. Study the
-            creative pattern, choose your interpretation, then make it with H3.
+            Turn a social reference into your next campaign. Study the creative
+            pattern, choose your interpretation, then make it with H3.
           </p>
           <div className="chat-capabilities">
             <span>
@@ -1422,7 +1420,7 @@ function DirectorChat({
               disabled={resuming}
               onClick={() =>
                 void send(
-                  "Read the saved campaign in get_project. Inspect its attached clips with inspect_campaign_reference and save_campaign_analysis. If only links and notes are available, make a clearly labelled notes-only hypothesis and explain what clip we need. Then save three original MiniMax M3.1 launch treatments. Do not generate footage yet.",
+                  "Read the saved campaign in get_project. Inspect its attached clips with inspect_campaign_reference and save_campaign_analysis. If only links and notes are available, make a clearly labelled notes-only hypothesis and explain what clip we need. Then save three original treatments for the user’s brand. Do not generate footage yet.",
                 )
               }
             >
@@ -1433,7 +1431,7 @@ function DirectorChat({
               disabled={resuming}
               onClick={() =>
                 void send(
-                  "Read the project brief and inspect our available references. Propose three distinctive treatments for your own MiniMax M3.1 launch film. Save them to the workspace. Do not generate footage yet.",
+                  "Read the project brief and inspect our available references. Propose three distinctive treatments for the user’s campaign film. Save them to the workspace. Do not generate footage yet.",
                 )
               }
             >

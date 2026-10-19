@@ -19,13 +19,13 @@ try {
     .waitFor();
   assert.equal(await page.getByRole("textbox").count(), 1);
   await page
-    .getByRole("button", { name: "The dancing dogs launch", exact: true })
+    .getByRole("button", { name: "Launch something new", exact: true })
     .click();
   assert.match(
     await page
       .getByRole("textbox", { name: "Describe your campaign", exact: true })
       .inputValue(),
-    /dancing dogs/,
+    /sparkling tea/,
   );
   assert.equal(
     await page
@@ -105,7 +105,7 @@ try {
     .locator(".director-tabs")
     .getByRole("button", { name: "Director", exact: true })
     .click();
-  await page.getByRole("button", { name: /The brief\. 01/ }).click();
+  await page.getByRole("button", { name: /Opening\. 01/ }).click();
   assert.equal(
     await page
       .getByRole("button", { name: "Export film", exact: true })

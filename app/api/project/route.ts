@@ -34,7 +34,7 @@ const mutation = z.discriminatedUnion("action", [
     referenceUrl: z.string().url().optional(),
   }),
   z.object({ action: z.literal("campaign"), campaign: campaignBriefInput }),
-  z.object({ action: z.literal("brief"), brief: z.string().min(1).max(12000) }),
+  z.object({ action: z.literal("brief"), brief: z.string().max(12000) }),
   z.object({ action: z.literal("shot"), shot: shotInput }),
   z.object({
     action: z.literal("lock"),

@@ -15,7 +15,7 @@ The hosted starter is one studio shared by trusted operators. It uses Neon for c
 vercel blob create-store film-studio-media --access private --region iad1 --yes
 ```
 
-The CLI adds Blob credentials to your local environment while preserving your MiniMax settings. The production and preview environments must point at the same intended private store for their brand assets.
+The CLI adds Blob credentials to your local environment while preserving your MiniMax settings. There is no brand asset setup step. Users upload their own logos, product images and reference clips through the app.
 
 ## Configure and migrate
 
@@ -26,12 +26,11 @@ node scripts/configure-vercel-env.mjs
 node --env-file=.env.neon-test.local scripts/migrate.mjs
 node --env-file=.env.neon-test.local --import tsx scripts/check-postgres.ts
 node --env-file=.env.deploy.local scripts/migrate.mjs
-node --env-file=.env.local scripts/upload-brand-assets.mjs
 ```
 
 You can also configure variables in Vercel's dashboard instead of using the helper. Hosted mode needs `DATABASE_URL`, private Blob credentials, `STUDIO_STORAGE=cloud`, and the explicitly verified deployment-protection flag, alongside your MiniMax credentials. Set `STUDIO_HOST` to your exact stable production hostname, including any team suffix. Deployment-specific hostnames are also recognized automatically.
 
-Keep credentials server-side. This template does not accept visitors' API keys through a browser form. TwitterAPI.io is optional when users supply a reference.
+Keep credentials server-side. This template does not accept visitors' API keys through a browser form. TwitterAPI.io is required for X search and X URL imports; it is optional for direct file uploads. Each deployer supplies their own key. Public TikTok URL extraction uses yt-dlp and needs that executable plus its runtime on the host; the local setup script alone does not provision it inside a Vercel function. Direct video uploads work independently of that extractor.
 
 ## Stage, verify, and release
 
