@@ -8,7 +8,7 @@ The hosted starter is one studio shared by trusted operators. It uses Neon for c
 
 1. Use Node 24, install dependencies, copy `.env.example` to `.env.local`, and configure your own authorized MiniMax keys/models.
 2. Create/link a Vercel project. Enable **Vercel Authentication for all deployments**, including production, under Deployment Protection. This uses Vercel sign-in rather than an app password. The hosted agent trusts that project boundary; do not set `STUDIO_DEPLOYMENT_PROTECTED=true` on an unprotected project.
-3. Create a dedicated Neon project/database and a test branch. Put production connection URLs in `.env.deploy.local` and test-branch URLs in `.env.neon-test.local`, using `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct). Obtain both from Neon; its returned URL may already be pooled. Use verified TLS. These files are ignored by Git and deployment uploads.
+3. Create a dedicated Neon project/database and a test branch. Put production connection URLs in `.env.deploy.local` and test-branch URLs in `.env.neon-test.local`, using `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct). Obtain both from Neon; its returned URL may already be pooled. Add `STUDIO_HOST` to `.env.deploy.local` using the actual production hostname shown in Vercel's Domains settings; it may include your team slug. Use verified TLS. These files are ignored by Git and deployment uploads.
 4. Create a private Blob store connected to your Vercel project:
 
 ```sh
@@ -29,7 +29,7 @@ node --env-file=.env.deploy.local scripts/migrate.mjs
 node --env-file=.env.local scripts/upload-brand-assets.mjs
 ```
 
-You can also configure variables in Vercel's dashboard instead of using the helper. Hosted mode needs `DATABASE_URL`, private Blob credentials, `STUDIO_STORAGE=cloud`, and the explicitly verified deployment-protection flag, alongside your MiniMax credentials. `STUDIO_HOST` may name a custom studio hostname. Standard Vercel deployment and production hostnames are recognized automatically.
+You can also configure variables in Vercel's dashboard instead of using the helper. Hosted mode needs `DATABASE_URL`, private Blob credentials, `STUDIO_STORAGE=cloud`, and the explicitly verified deployment-protection flag, alongside your MiniMax credentials. Set `STUDIO_HOST` to your exact stable production hostname, including any team suffix. Deployment-specific hostnames are also recognized automatically.
 
 Keep credentials server-side. This template does not accept visitors' API keys through a browser form. TwitterAPI.io is optional when users supply a reference.
 
