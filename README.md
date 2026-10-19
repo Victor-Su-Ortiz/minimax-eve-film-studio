@@ -4,6 +4,8 @@ A private local production workspace that decodes a social campaign's creative s
 
 This repository contains the runnable local app. It is not a hosted multi-user service. See [the hosted starter plan](docs/hosted-starter.md) for the minimum changes needed to run it on Vercel with Neon.
 
+Each person cloning or deploying the template supplies their own MiniMax API keys and model IDs. The template connects directly to the preconfigured MiniMax endpoints; no author-owned credentials or AI Gateway account are included or required.
+
 ## Run locally
 
 Use Node.js 24 or newer and install FFmpeg (including ffprobe).
@@ -16,14 +18,16 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [the studio](http://127.0.0.1:3000). The app binds to loopback. The public model is `MiniMax-M3.1-Flash-Preview`; its current public access requires an M Plan/MiniMax Code subscription key. H3 uses pay-as-you-go API access, so the two keys may differ. Add credentials only to `.env.local`, then restart:
+Open [the studio](http://127.0.0.1:3000). The app binds to loopback. Add your own credentials and model IDs to `.env.local`, then restart. The defaults below preserve the demo's model configuration; choose IDs and keys your MiniMax account is authorized to use. Text and video keys may differ:
 
 ```dotenv
 MINIMAX_TEXT_API_KEY=your_text_key
+MINIMAX_TEXT_MODEL=MiniMax-M3.1-Flash-Preview
 MINIMAX_VIDEO_API_KEY=your_video_key
+MINIMAX_VIDEO_MODEL=MiniMax-H3
 ```
 
-The AI SDK Anthropic-compatible base URL is `https://api.minimax.io/anthropic/v1`. Override `MINIMAX_TEXT_MODEL` or `MINIMAX_TEXT_BASE_URL` for a different authorized endpoint. The browser receives configuration status, never provider keys.
+The preconfigured text endpoint is `https://api.minimax.io/anthropic/v1`; the video endpoint is `https://api.minimax.io` using `/v2/video_generation`. Keep these MiniMax endpoints for normal setup. `MINIMAX_TEXT_MODEL` configures the director and all three specialists. `MINIMAX_VIDEO_MODEL` configures new video submissions and must support the H3/V2 request format. The browser receives configuration status, never provider keys. A template-wide shared password is not required for local use.
 
 ## Campaign to launch film
 

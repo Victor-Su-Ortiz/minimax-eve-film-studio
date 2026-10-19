@@ -563,6 +563,34 @@ test("provider writes are deduplicated across concurrent and replayed calls", as
   assert.equal(calls, 1);
 });
 
+test("the configured video model is sent directly to the existing MiniMax endpoint", async () => {
+  const previous = process.env.MINIMAX_VIDEO_MODEL;
+  // A fixture ID verifies forwarding; it is not an advertised provider model.
+  process.env.MINIMAX_VIDEO_MODEL = "configured-h3-test-model";
+  try {
+    let calls = 0;
+    const job = await submitShot(
+      "shot_leap",
+      "configured-model",
+      "768P",
+      async (url, init) => {
+        calls++;
+        assert.equal(String(url), "https://api.minimax.io/v2/video_generation");
+        assert.equal(
+          JSON.parse(init!.body as string).model,
+          "configured-h3-test-model",
+        );
+        return Response.json({ task_id: "configured-model-task" });
+      },
+    );
+    assert.equal(calls, 1);
+    assert.equal(job.taskId, "configured-model-task");
+  } finally {
+    if (previous === undefined) delete process.env.MINIMAX_VIDEO_MODEL;
+    else process.env.MINIMAX_VIDEO_MODEL = previous;
+  }
+});
+
 test("campaign format reaches the H3 request and stays attached to its job", async () => {
   saveCampaignBrief(dancingDogsExample());
   const provider: typeof fetch = async (_url, init) => {

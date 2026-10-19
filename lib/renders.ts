@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
-import { videoKey } from "./config";
+import { videoKey, videoModelId } from "./config";
 import {
   isActiveJob,
   requireEditableShot,
@@ -109,7 +109,7 @@ export async function submitShot(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "MiniMax-H3",
+        model: videoModelId(),
         content: [{ type: "text", text: job.prompt }, ...references],
         resolution,
         duration: job.duration,

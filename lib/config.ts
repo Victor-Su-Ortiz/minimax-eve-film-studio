@@ -42,6 +42,9 @@ export function trendKey() {
 export function modelId() {
   return process.env.MINIMAX_TEXT_MODEL || "MiniMax-M3.1-Flash-Preview";
 }
+export function videoModelId() {
+  return runtimeEnv("MINIMAX_VIDEO_MODEL") || "MiniMax-H3";
+}
 export function binary(name: "ffmpeg" | "ffprobe") {
   const configured =
     process.env[name === "ffmpeg" ? "FFMPEG_PATH" : "FFPROBE_PATH"];
