@@ -1,6 +1,7 @@
 export type SocialPost = {
   id: string;
   platform: "tiktok" | "x";
+  provider?: "official" | "twitterapi-io";
   url: string;
   author: string;
   text: string;
@@ -26,6 +27,9 @@ export type TrendSearch = {
   query: string;
   visualTarget?: string;
   days: number;
+  requestedDays?: number;
+  provider?: "official" | "twitterapi-io";
+  until?: string;
   since: string;
   checkedAt: string;
   status: "searching" | "complete" | "failed";

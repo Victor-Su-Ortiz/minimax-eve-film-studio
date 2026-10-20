@@ -240,6 +240,16 @@ export type ConnectionStatus = {
   ffmpeg: boolean;
   model: string;
   storage: "local" | "cloud";
+  discovery?: {
+    xProvider: "official" | "twitterapi-io" | null;
+    xConfigured: boolean;
+    exaConfigured: boolean;
+    officialXConfigured: boolean;
+    twitterApiIoConfigured: boolean;
+    uploadOnly: boolean;
+    xMaxSearchDays: number;
+    configurationError?: string;
+  };
 };
 
 export function initialProject(): Project {

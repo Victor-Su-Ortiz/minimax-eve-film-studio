@@ -454,7 +454,9 @@ function PromptWorkspace({
               <span>Make your next one.</span>
             </h1>
             <p>
-              Tell M3.1 what you have in mind.
+              {status.discovery?.uploadOnly
+                ? "Attach a reference video and tell M3.1 what you have in mind."
+                : "Tell M3.1 what you have in mind."}
               <br className="nl-mobile-break" /> Watch it turn the idea into a
               launch film.
             </p>
@@ -1166,7 +1168,9 @@ function PromptWorkspace({
                 <span>
                   {working
                     ? "Your words steer the film"
-                    : "M3.1 directs · H3 creates"}
+                    : status.discovery?.uploadOnly
+                      ? "Upload a reference · Live search is optional"
+                      : "M3.1 directs · H3 creates"}
                 </span>
               </div>
               <button
@@ -1194,7 +1198,7 @@ function PromptWorkspace({
               {error}
             </p>
           )}
-          {!hasOutput && (
+          {!hasOutput && !status.discovery?.uploadOnly && (
             <div className="nl-examples">
               {examples.map((example, i) => (
                 <button
@@ -1217,7 +1221,9 @@ function PromptWorkspace({
           <p className="nl-input-hint">
             {hasOutput
               ? "Keep directing in your own words."
-              : "Describe a trend, paste a campaign link, or drop in a reference clip."}
+              : status.discovery?.uploadOnly
+                ? "Upload a reference clip with the paperclip. No search keys are needed."
+                : "Describe a trend, paste a campaign link, or drop in a reference clip."}
           </p>
         </section>
         {!hasOutput && (

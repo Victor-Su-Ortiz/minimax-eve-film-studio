@@ -47,6 +47,47 @@ export function trendKey() {
 export function exaKey() {
   return runtimeEnv("EXA_API_KEY");
 }
+export function officialXKey() {
+  return runtimeEnv("X_API_BEARER_TOKEN");
+}
+export function discoveryStatus() {
+  const official = Boolean(officialXKey());
+  const thirdParty = Boolean(trendKey());
+  const preference = runtimeEnv("X_SEARCH_PROVIDER")?.trim() || "auto";
+  const valid = ["auto", "official", "twitterapi-io", "none"].includes(
+    preference,
+  );
+  const provider =
+    !valid || preference === "none"
+      ? null
+      : preference === "auto"
+        ? official
+          ? "official"
+          : thirdParty
+            ? "twitterapi-io"
+            : null
+        : (preference as "official" | "twitterapi-io");
+  const xConfigured =
+    provider === "official"
+      ? official
+      : provider === "twitterapi-io"
+        ? thirdParty
+        : false;
+  return {
+    xProvider: provider,
+    xConfigured,
+    exaConfigured: Boolean(exaKey()),
+    officialXConfigured: official,
+    twitterApiIoConfigured: thirdParty,
+    uploadOnly: !xConfigured && !exaKey(),
+    xMaxSearchDays: provider === "official" ? 7 : 30,
+    configurationError: !valid
+      ? "X_SEARCH_PROVIDER must be auto, official, twitterapi-io or none."
+      : provider && !xConfigured
+        ? `The selected ${provider} X provider has no server credential. Upload a reference or configure that provider.`
+        : undefined,
+  };
+}
 export function modelId() {
   return process.env.MINIMAX_TEXT_MODEL || "MiniMax-M3.1-Flash-Preview";
 }
@@ -84,5 +125,6 @@ export function connectionStatus(): ConnectionStatus {
     ffmpeg,
     model: modelId(),
     storage: process.env.STUDIO_STORAGE === "cloud" ? "cloud" : "local",
+    discovery: discoveryStatus(),
   };
 }

@@ -109,7 +109,7 @@ export async function searchWebReferences(
   const key = exaKey();
   if (!key)
     throw new Error(
-      "Web research needs EXA_API_KEY in the server environment. X discovery is still available separately.",
+      "Optional web research is not configured (EXA_API_KEY). Use an uploaded reference video, or X discovery only if its provider is configured.",
     );
   const now = Date.now();
   const search: WebResearchSearch = {

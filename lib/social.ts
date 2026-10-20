@@ -7,7 +7,8 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { emptyCampaign } from "./campaign";
-import { trendKey } from "./config";
+import { trendKey, discoveryStatus } from "./config";
+import { officialXRequest } from "./x-api";
 import { saveCampaignBrief } from "./campaign-store";
 import { MAX_UPLOAD, registerUpload } from "./media";
 import { event, getProject, mutateProject } from "./store";
@@ -198,14 +199,46 @@ export async function searchTrendVideos(
   input: z.input<typeof trendSearchInput>,
   providerFetch: typeof fetch = fetch,
 ) {
-  const { query, days, visualTarget } = trendSearchInput.parse(input);
+  const {
+    query,
+    days: requestedDays,
+    visualTarget,
+  } = trendSearchInput.parse(input);
+  const discovery = discoveryStatus();
   const checkedAt = new Date().toISOString();
-  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  if (!discovery.xConfigured)
+    return {
+      query,
+      checkedAt,
+      posts: [],
+      unavailable: true,
+      error:
+        discovery.configurationError ||
+        "X discovery is optional and is not configured. Use an uploaded reference video, or Exa research if configured. Do not retry X search until configured.",
+    };
+  const provider = discovery.xProvider!;
+  const days = Math.min(requestedDays, discovery.xMaxSearchDays);
+  // Keep pagination safely inside X's rolling seven-day window.
+  const since = new Date(
+    Date.parse(checkedAt) -
+      days * 86_400_000 +
+      (provider === "official" && days === 7 ? 300_000 : 0),
+  ).toISOString();
+  const until = new Date(
+    Date.parse(checkedAt) - (provider === "official" ? 30_000 : 0),
+  ).toISOString();
+  const windowWarning =
+    days < requestedDays
+      ? `Official X recent search covers only the last ${days} days; the requested ${requestedDays}-day window was not searched in full.`
+      : undefined;
   const search: TrendSearch = {
     id: randomUUID(),
     query,
     visualTarget: visualTarget || query,
     days,
+    requestedDays,
+    provider,
+    until,
     since,
     checkedAt,
     status: "searching",
@@ -224,24 +257,35 @@ export async function searchTrendVideos(
     const cursors = new Set<string>();
     let cursor = "";
     let pagesScanned = 0;
-    let warning: string | undefined;
+    let warning: string | undefined = windowWarning;
     // A sparse first page is not evidence that no popular clip exists.
     // Bound provider work and reject low/unknown views locally on every page.
     for (let page = 0; page < 3; page++) {
       let result;
       try {
-        result = await twitterRequest(
-          "tweet/advanced_search",
-          {
-            query: `${query ? `(${query}) ` : ""}filter:videos -filter:retweets since_time:${Math.floor(Date.parse(since) / 1000)} until_time:${Math.ceil(Date.parse(checkedAt) / 1000)}`,
-            queryType: "Top",
-            cursor,
-          },
-          providerFetch,
-        );
+        result =
+          provider === "official"
+            ? await officialXRequest(
+                { kind: "search", query, since, until, cursor },
+                providerFetch,
+              )
+            : await twitterRequest(
+                "tweet/advanced_search",
+                {
+                  query: `${query ? `(${query}) ` : ""}filter:videos -filter:retweets since_time:${Math.floor(Date.parse(since) / 1000)} until_time:${Math.ceil(Date.parse(checkedAt) / 1000)}`,
+                  queryType: "Top",
+                  cursor,
+                },
+                providerFetch,
+              );
       } catch (error) {
         if (!pagesScanned) throw error;
-        warning = `Search stopped after ${pagesScanned} page(s): ${error instanceof Error ? error.message : "Provider unavailable."}`;
+        warning = [
+          windowWarning,
+          `Search stopped after ${pagesScanned} page(s): ${error instanceof Error ? error.message : "Provider unavailable."}`,
+        ]
+          .filter(Boolean)
+          .join(" ");
         break;
       }
       pagesScanned++;
@@ -253,7 +297,7 @@ export async function searchTrendVideos(
           post.publishedAt <= checkedAt &&
           qualifiesAsTrend(post)
         )
-          unique.set(post.id, post);
+          unique.set(post.id, { ...post, provider });
       }
       if (
         unique.size >= 6 ||
@@ -301,6 +345,10 @@ export async function searchTrendVideos(
     });
     return {
       searchId: search.id,
+      provider,
+      days,
+      requestedDays,
+      until,
       query,
       visualTarget: search.visualTarget,
       since,
@@ -611,11 +659,23 @@ async function importVideo(
         );
       bytes = await readFile(filename);
     } else {
-      const { tweets } = await twitterRequest(
-        "tweets",
-        { tweet_ids: source.postId },
-        providerFetch,
-      );
+      const discovery = discoveryStatus();
+      if (!discovery.xConfigured)
+        throw new Error(
+          discovery.configurationError ||
+            "X URL import needs an optional X provider. Upload the reference video directly, or configure X_API_BEARER_TOKEN or TWITTERAPI_IO_API_KEY.",
+        );
+      const { tweets } =
+        discovery.xProvider === "official"
+          ? await officialXRequest(
+              { kind: "lookup", id: source.postId },
+              providerFetch,
+            )
+          : await twitterRequest(
+              "tweets",
+              { tweet_ids: source.postId },
+              providerFetch,
+            );
       const found = tweets.find((t) => string(record(t).id) === source.postId);
       const resolved = normalizeTweet(found, new Date().toISOString());
       if (!resolved)
@@ -624,6 +684,7 @@ async function importVideo(
         );
       post = {
         ...resolved,
+        provider: discovery.xProvider!,
         importStatus: "fetching",
         discoveryOnly: !attachToCampaign,
       };
