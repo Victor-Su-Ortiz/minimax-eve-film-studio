@@ -8,17 +8,16 @@ Each person cloning or deploying the template supplies their own MiniMax API key
 
 ## Run locally
 
-Use Node.js 24 or newer and install FFmpeg (including ffprobe).
+Clone this repository and run the following from its root. Use Node.js 24 (`.nvmrc`). FFmpeg and ffprobe are bundled for supported platforms; you can instead install them locally and set `FFMPEG_PATH` / `FFPROBE_PATH` if needed.
 
 ```sh
 nvm install
 nvm use
 npm install
 cp .env.example .env.local
-npm run dev
 ```
 
-Open [the studio](http://127.0.0.1:3000). The app binds to loopback. Add your own credentials and model IDs to `.env.local`, then restart. The defaults below preserve the demo's model configuration; choose IDs and keys your MiniMax account is authorized to use. Text and video keys may differ:
+Before starting, add your own credentials and model IDs to `.env.local`. The defaults below preserve the demo's model configuration; choose IDs and keys your MiniMax account is authorized to use. Text and video keys may differ:
 
 ```dotenv
 MINIMAX_TEXT_API_KEY=your_text_key
@@ -26,6 +25,24 @@ MINIMAX_TEXT_MODEL=MiniMax-M3.1-Flash-Preview
 MINIMAX_VIDEO_API_KEY=your_video_key
 MINIMAX_VIDEO_MODEL=MiniMax-H3
 ```
+
+Storyboards also require Image-01 access. They use the video key by default; set `MINIMAX_IMAGE_API_KEY` separately if needed and keep `MINIMAX_IMAGE_MODEL=image-01`. Having a key does not guarantee access to every model.
+
+```sh
+npm run dev
+```
+
+Open [the studio](http://127.0.0.1:3000). The app binds to loopback. Restart after changing configuration. Attach a reference clip and your brand images, then describe the film you want. No search credentials are needed for this first run.
+
+| Capability | Configuration |
+| --- | --- |
+| Director and specialists | `MINIMAX_TEXT_API_KEY`, `MINIMAX_TEXT_MODEL` |
+| Video generation | `MINIMAX_VIDEO_API_KEY`, `MINIMAX_VIDEO_MODEL` |
+| Visual storyboards | Video key with Image-01 access, or `MINIMAX_IMAGE_API_KEY` |
+| Optional X discovery/import | `X_API_BEARER_TOKEN` or `TWITTERAPI_IO_API_KEY`; select with `X_SEARCH_PROVIDER` |
+| Optional broader web research | `EXA_API_KEY` |
+| Optional local TikTok import | Python 3, then `npm run setup:video-import` |
+| Hosted persistence | Neon database + private Vercel Blob; follow [hosted setup](docs/hosted-starter.md) |
 
 The preconfigured text endpoint is `https://api.minimax.io/anthropic/v1`; the video endpoint is `https://api.minimax.io` using `/v2/video_generation`. Keep these MiniMax endpoints for normal setup. `MINIMAX_TEXT_MODEL` configures the director and all three specialists. `MINIMAX_VIDEO_MODEL` configures new video submissions and must support the H3/V2 request format. The browser receives configuration status, never provider keys. A template-wide shared password is not required for local use.
 
@@ -93,19 +110,19 @@ New campaigns have empty prompts and neutral scene slots until you describe your
 
 - Prompt-first Next.js app with one text box, optional attachments, natural-language direction, actual tool activity and a visual output canvas.
 - Detailed editor: brief, shot board, source library, shot inspector, takes, comparison, locking, production activity and exports.
-- Campaign references, versioned creative breakdowns with timestamped evidence and hypotheses, a dancing-dogs starting brief, and portrait/widescreen delivery.
+- Campaign references, versioned creative breakdowns with timestamped evidence and hypotheses, an empty brand-agnostic starting campaign, and portrait/widescreen delivery.
 - Real eve agent with M3.1 via `@ai-sdk/anthropic`, typed tools and a resumable browser conversation.
 - Three declared M3.1 subagents: trend scout, reference analyst and take reviewer, each with a narrow tool set and its own eve session. The single-input studio follows their child streams and displays actual task status, tool activity and findings. Independent scouting and source analysis can run in parallel; only the director can modify plans or request renders. No child can accept or unlock takes.
 - H3 V2 submission, persisted provider task IDs and durable polling through `defineWorkflowTool`.
 - Local media uploads, metadata validation, reference encoding and four-frame visual inspection.
-- SQLite transactions shared by the Next.js and eve processes; media and accepted renders saved to disk.
-- FFmpeg assembly with normalized video/audio, an authored title card, versioned portrait/widescreen exports and range-served playback.
+- SQLite transactions and local media for development; Neon transactions and private Blob media for hosted studios.
+- Image-01 storyboards passed into H3, and FFmpeg assembly with normalized video/audio, optional supplied-logo overlays, versioned portrait/widescreen exports and range-served playback.
 
 ## Reliability and limits
 
 Submissions reserve a unique operation in the database before calling H3. Replays reuse the saved operation. An uncertain submission blocks a new job for that shot; it does not automatically submit again. If the provider accepted a job but its response was lost, recover the task ID in the MiniMax console and attach it in **Activity**. A response lost between submission and persistence cannot be made exactly-once without provider-side idempotency.
 
-H3 reference videos and audio must each be 2–15 seconds, with total reference duration at most 15 seconds per modality. Images and clip dimensions must match the current API limits. This local build accepts files up to 32 MB, uses inline reference data and bounds the encoded request size. Use MP4 for H3 video references; MOV is supported as source footage for assembly.
+H3 reference videos and audio must each be 2–15 seconds, with total reference duration at most 15 seconds per modality. Images and clip dimensions must match the current API limits. The studio accepts files up to 32 MB, uses inline reference data and bounds the encoded request size. Use MP4 for H3 video references; MOV is supported as source footage for assembly.
 
 Visual review sends four timestamped still frames together in one contact sheet, so the reviewer can compare every sample in a single image. Fresh inspections start a new specialist task; clarifying an existing report can reuse its task. It does not evaluate all motion, voice intelligibility, music licensing or soundtrack quality. Perform a playback/listening pass before release. Exports use straight cuts and keep the selected footage’s native audio by default, including H3 sound, aligned to scene trims. Scenes without audio stay silent; no music is substituted. Users can instead choose an original reference recording (once by default, loop only when requested), silence, or explicitly request the legacy local synthesized instrumental score. These replacement modes exclude H3 audio. MiniMax Music is not integrated. Visual references sent to H3 are muted without modifying the original files. Audio-only revisions reuse the encoded pictures and preserve previous exports; audio checks record source provenance and duration, not a listening review.
 
@@ -113,7 +130,7 @@ In local mode, `.studio/` holds SQLite and media and `.eve/` holds eve’s local
 
 Live M3.1 and H3 calls require your own authorized credentials. The production tests use a test-only provider fixture and real FFmpeg media; that fixture is never available as an application mode.
 
-The current dependency audit reports a moderate, unpatched denial-of-service advisory in `sprintf-js`, inherited through the local `just-bash` sandbox package. Arbitrary agent shell tools are disabled in this application. Recheck the upstream fix before expanding execution capabilities or production deployment.
+Arbitrary agent shell tools are disabled in this application. Run `npm audit` to check the installed dependency versions against current advisories before expanding execution capabilities.
 
 ## Checks
 
@@ -124,7 +141,7 @@ npm run build:agent
 npm run build
 ```
 
-Tests cover concurrent/replayed submissions, uncertain provider responses, locked-shot protection, candidate-take preservation, real upload/frame extraction, MP4 assembly, byte-range playback and local API access. FFmpeg must be installed. Production media is not used by tests.
+Tests cover concurrent/replayed submissions, uncertain provider responses, locked-shot protection, candidate-take preservation, real upload/frame extraction, MP4 assembly, byte-range playback, optional search-provider selection and local API access. FFmpeg and ffprobe must be executable through the bundled binaries or configured local installation. Production media is not used by tests.
 
 With the development server running and Playwright Chromium installed, `npm run test:browser` checks the initial editor’s save/reload flow, missing-key setup, shot inspection and responsive layout. It briefly edits and restores the brief; use it on the initial project, before producing real takes. `PLAYWRIGHT_EXECUTABLE_PATH` can point to an existing compatible Chromium installation.
 
