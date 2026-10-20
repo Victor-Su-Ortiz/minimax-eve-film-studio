@@ -32,6 +32,7 @@ import { TrendGallery } from "./trend-gallery";
 import { DirectorText } from "./director-text";
 import { FilmCrew } from "./film-crew";
 import { WebResearch } from "./web-research";
+import { Storyboard } from "./storyboard";
 import { sendWithSessionRecovery } from "@/lib/session-recovery";
 import { MAX_CAMPAIGN_REFERENCES } from "@/lib/reference-limits";
 import { uploadStudioFile } from "@/lib/upload-client";
@@ -746,6 +747,8 @@ function PromptWorkspace({
                 </div>
               </section>
             )}
+
+            <Storyboard project={project} />
 
             {project.jobs.length > 0 && (
               <section className="nl-section">

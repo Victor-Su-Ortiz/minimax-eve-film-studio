@@ -37,7 +37,8 @@ export type Asset = {
   duration?: number;
   width?: number;
   height?: number;
-  origin: "upload" | "social" | "h3" | "export" | "brand" | "derived";
+  origin:
+    "upload" | "social" | "h3" | "export" | "brand" | "derived" | "storyboard";
   derivedFrom?: { assetId: string; start: number; duration: number };
   sourceUrl?: string;
   createdAt: string;
@@ -55,6 +56,20 @@ export type Shot = ShotInput & {
   takes: Take[];
   acceptedTakeId?: string;
   revisionRequestedAt?: string;
+};
+export type StoryboardFrame = {
+  id: string;
+  signature: string;
+  shotId: string;
+  shotRevision: number;
+  ratio: "9:16" | "16:9";
+  prompt: string;
+  subjectAssetId?: string;
+  model: string;
+  status: "generating" | "ready" | "failed" | "unknown";
+  assetId?: string;
+  error?: string;
+  createdAt: string;
 };
 export type RenderJob = {
   id: string;
@@ -167,6 +182,7 @@ export type Project = {
   shots: Shot[];
   assets: Asset[];
   jobs: RenderJob[];
+  storyboards?: StoryboardFrame[];
   events: StudioEvent[];
   cuts: Cut[];
   shotEdits?: {
@@ -285,6 +301,21 @@ export function planUsesCurrentSources(
 
 export function projectRatio(project: Project) {
   return project.campaign?.ratio || "16:9";
+}
+
+export function currentStoryboard(project: Project, shot: Shot) {
+  const frame = project.storyboards?.findLast(
+    (entry) => entry.shotId === shot.id,
+  );
+  if (
+    frame &&
+    frame.shotRevision === shot.revision &&
+    frame.ratio === projectRatio(project) &&
+    frame.status === "ready" &&
+    project.assets.some((asset) => asset.id === frame.assetId) &&
+    planUsesCurrentSources(project, shot)
+  )
+    return frame;
 }
 
 export function requireEditableShot(project: Project, id: string) {

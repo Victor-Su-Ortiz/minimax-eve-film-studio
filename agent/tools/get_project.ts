@@ -1,7 +1,13 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getProject } from "../../lib/store";
-import { textKey, videoKey, trendKey, exaKey } from "../../lib/config";
+import {
+  textKey,
+  videoKey,
+  imageKey,
+  trendKey,
+  exaKey,
+} from "../../lib/config";
 
 export default defineTool({
   description:
@@ -15,6 +21,7 @@ export default defineTool({
     connections: {
       textConfigured: Boolean(textKey()),
       videoConfigured: Boolean(videoKey()),
+      imageConfigured: Boolean(imageKey()),
       trendSearchConfigured: Boolean(trendKey()),
       webSearchConfigured: Boolean(exaKey()),
       note: "Presence in this agent runtime only; API entitlement is verified by actual requests. Keys are never returned.",

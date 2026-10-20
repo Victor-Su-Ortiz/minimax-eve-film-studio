@@ -38,6 +38,9 @@ export function textKey() {
 export function videoKey() {
   return runtimeEnv("MINIMAX_VIDEO_API_KEY") || runtimeEnv("MINIMAX_API_KEY");
 }
+export function imageKey() {
+  return runtimeEnv("MINIMAX_IMAGE_API_KEY") || videoKey();
+}
 export function trendKey() {
   return runtimeEnv("TWITTERAPI_IO_API_KEY");
 }

@@ -74,7 +74,7 @@ Default MP4 exports are clean footage with the chosen soundtrack. For an exact s
 5. Unlock only the shot you want revised, then give a note with that shot selected. Compare the new take to the accepted take and accept it when ready.
 6. Assign your real opening footage with **Use footage**. Once every source/generated shot has an accepted take, **Export film** assembles the film into a downloadable 1080p MP4. The final export uses only your requested, supplied branding. Download the last export from **Activity** or preview it with **Play last export**.
 
-New storyboards have empty prompts and neutral scene slots until you describe your campaign. It is not generated footage or a claim that M3.1 has already directed the film. There are no simulated model responses or fake generation jobs.
+New campaigns have empty prompts and neutral scene slots until you describe your campaign. After planning, the director generates a real MiniMax Image-01 storyboard image for each new scene, displayed before H3 footage. Each current board image is sent to H3 as a visual reference; old boards are marked when the plan changes. Ask for “storyboards only” to stop before paid video generation, then continue from the same conversation. Image generation uses `MINIMAX_IMAGE_API_KEY` if set, otherwise the video key, and defaults to `MINIMAX_IMAGE_MODEL=image-01`. The API must grant image access to that key. Images are stored with other media in local storage or private Blob, not left on expiring provider URLs. There are no simulated model responses or fake generation jobs.
 
 ## What is implemented
 

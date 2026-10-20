@@ -7,6 +7,7 @@ import {
   requireEditableShot,
   projectRatio,
   planUsesCurrentSources,
+  currentStoryboard,
   type Asset,
   type RenderJob,
 } from "./domain";
@@ -53,7 +54,18 @@ export async function submitShot(
     throw new Error(
       "This shot predates the current reference analysis. Inspect the selected footage, save the analysis, and update this shot's prompt and sourceBasis before rendering. No H3 request was made.",
     );
-  const references = await referenceContent(shot.referenceIds);
+  const boardAssetId = currentStoryboard(snapshot, shot)?.assetId;
+  if (
+    snapshot.storyboards?.some((frame) => frame.shotId === shotId) &&
+    !boardAssetId
+  )
+    throw new Error(
+      "This shot needs a ready storyboard for its current plan and format before H3 rendering.",
+    );
+  const referenceIds = [
+    ...new Set([...shot.referenceIds, ...(boardAssetId ? [boardAssetId] : [])]),
+  ];
+  const references = await referenceContent(referenceIds);
   const reservation = await mutateProject((p) => {
     const duplicate = p.jobs.find((j) => j.requestKey === requestKey);
     if (duplicate) return { job: structuredClone(duplicate), fresh: false };
@@ -66,6 +78,10 @@ export async function submitShot(
     if (current.revision !== shot.revision)
       throw new Error(
         "Shot changed while preparing references. Review it and render again.",
+      );
+    if (currentStoryboard(p, current)?.assetId !== boardAssetId)
+      throw new Error(
+        "The storyboard changed while preparing the render. Read the current board before rendering.",
       );
     if (projectRatio(p) !== projectRatio(snapshot))
       throw new Error(
@@ -85,7 +101,7 @@ export async function submitShot(
       prompt: shot.sourceBasis
         ? `${shot.prompt}\n\nCreative adaptation from inspected footage: ${shot.sourceBasis.adaptation}`
         : shot.prompt,
-      referenceIds: [...shot.referenceIds],
+      referenceIds,
       sourceBasis: shot.sourceBasis
         ? structuredClone(shot.sourceBasis)
         : undefined,
