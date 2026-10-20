@@ -14,7 +14,7 @@ Make a playful MiniMax M3.1 Flash × Vercel launch film using the example below.
 1. Finish the [MiniMax text/video setup](../../../README.md#get-started) and open a new campaign.
 2. Unzip the kit and attach the four PNGs with the paperclip, then paste the prompt below. The dark preview helps communicate the intended appearance; it should not become a full-screen end card.
 3. To import the linked launch clip, configure either optional X provider. Without an X key, attach your own copy of the reference video and replace the prompt's URL paragraph with: “Use the attached video as the campaign reference; inspect its actual footage.” The four PNGs contain no video or audio.
-4. Choose the imported/uploaded video when the app presents the reference selection. The director then plans, renders, reviews and exports. This runs real paid MiniMax text/video calls; no image generation is used. Watch and listen to the final MP4 before sharing it.
+4. A single attached video is selected automatically; choose the reference when the app presents multiple candidates. The director then plans, renders, reviews and exports. This runs real paid MiniMax text/video calls; no image generation is used. Watch and listen to the final MP4 before sharing it.
 
 ### Copy this prompt
 
@@ -23,7 +23,7 @@ Create a cute, playful 20–25-second MiniMax M3.1 Flash × Vercel launch film c
 
 Use our original launch as inspiration: https://x.com/MiniMax_AI/status/2112111925975032241. Import and inspect the actual footage, then make an original continuation using the attached assets.
 
-Use space-bunny-reference.png for Bunny's appearance and the tactile, warmly lit visual style. Use vercel-triangle.png as the shape reference for a deploy button. Use minimax-m31-flash-x-vercel.png as the exact transparent co-brand overlay. lockup-preview-dark.png is only an appearance preview, not footage or an end card. Treat these images as brand and character references, separately from the source video.
+Use space-bunny-reference.png for Bunny's appearance and the tactile, warmly lit visual style. Use vercel-triangle.png as the shape reference for a deploy button. Use minimax-m31-flash-x-vercel.png as the exact transparent co-brand overlay. lockup-preview-dark.png is only an appearance preview: never composite its opaque background into the film or send it to H3 as a scene reference. Treat these images as brand and character references, separately from the source video.
 
 Space Bunny lands on a barren moon carrying a tiny glowing carrot. It plants the carrot and presses a triangular deploy button inspired by Vercel. A little sprout appears—then a wave of colorful flowers spreads across the lunar surface. Bunny bounces through the garden as the camera pulls back to reveal a blooming moon.
 

@@ -53,7 +53,7 @@ You can make a film from uploaded footage without any search keys.
 ## Make your first film
 
 1. Attach a reference video and your logo/character images with the paperclip, or paste a supported video URL when its importer is configured. Uploads can be up to 32 MB each.
-2. Describe the concept, format and any audio preferences in the single text box. Select the initial reference when prompted.
+2. Describe the concept, format and any audio preferences in the single text box. A single attached video is selected automatically; choose a reference when the app offers multiple candidates.
 3. Watch the shot plan, specialist activity and rendered takes appear, then download the final MP4. You can ask for changes without starting over.
 
 Exports support 9:16 and 16:9. H3's native audio is kept by default; explicitly request reference audio if you want to reuse it. Review motion and sound in the finished film—the agents' visual checks use sampled frames. Export creates a downloadable file; it does not publish to social media.
@@ -67,7 +67,7 @@ Exports support 9:16 and 16:9. H3's native audio is kept by default; explicitly 
 - [MiniMax × Vercel lockup](docs/examples/deploy-a-garden/minimax-m31-flash-x-vercel.png) — transparent ending overlay.
 - [Dark preview](docs/examples/deploy-a-garden/lockup-preview-dark.png) — appearance guide only.
 
-> Make a cute 20–25-second MiniMax M3.1 Flash × Vercel launch film in 16:9. Space Bunny plants a glowing carrot on the moon, presses a triangular deploy button, and watches a colorful garden bloom. Use my attached video for inspiration and the images for character and branding. End with Bunny waving as the transparent co-brand lockup appears over moving footage—no static end card. Use a written shot plan, then H3. Reuse the reference audio if suitable, shortening the film to fit; otherwise keep H3’s native sound. After I select the reference, continue through review and final MP4 export.
+> Make a cute 20–25-second MiniMax M3.1 Flash × Vercel launch film in 16:9. Space Bunny plants a glowing carrot on the moon, presses a triangular deploy button, and watches a colorful garden bloom. Use my attached video for inspiration, space-bunny-reference.png for the character, and vercel-triangle.png for the button. End with Bunny waving as the exact transparent minimax-m31-flash-x-vercel.png appears over moving footage. lockup-preview-dark.png is an appearance guide only: never composite its opaque background into the film. No static end card or generated lettering. Use a written shot plan, then H3. Reuse the reference audio if suitable, shortening the film to fit; otherwise keep H3’s native sound. After I select the reference, continue through review and final MP4 export.
 
 [Full example and original launch reference](docs/examples/deploy-a-garden/README.md)
 
