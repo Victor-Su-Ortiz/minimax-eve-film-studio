@@ -7,7 +7,6 @@ import {
   requireEditableShot,
   projectRatio,
   planUsesCurrentSources,
-  currentStoryboard,
   type Asset,
   type RenderJob,
 } from "./domain";
@@ -54,17 +53,18 @@ export async function submitShot(
     throw new Error(
       "This shot predates the current reference analysis. Inspect the selected footage, save the analysis, and update this shot's prompt and sourceBasis before rendering. No H3 request was made.",
     );
-  const boardAssetId = currentStoryboard(snapshot, shot)?.assetId;
-  if (
-    snapshot.storyboards?.some((frame) => frame.shotId === shotId) &&
-    !boardAssetId
-  )
-    throw new Error(
-      "This shot needs a ready storyboard for its current plan and format before H3 rendering.",
-    );
-  const referenceIds = [
-    ...new Set([...shot.referenceIds, ...(boardAssetId ? [boardAssetId] : [])]),
-  ];
+  // Old generated boards remain in history but no longer guide or block H3.
+  const legacyBoardIds = new Set([
+    ...(snapshot.storyboards ?? []).flatMap((frame) =>
+      frame.assetId ? [frame.assetId] : [],
+    ),
+    ...snapshot.assets
+      .filter((asset) => asset.origin === "storyboard")
+      .map((asset) => asset.id),
+  ]);
+  const referenceIds = [...new Set(shot.referenceIds)].filter(
+    (id) => !legacyBoardIds.has(id),
+  );
   const references = await referenceContent(referenceIds);
   const reservation = await mutateProject((p) => {
     const duplicate = p.jobs.find((j) => j.requestKey === requestKey);
@@ -78,10 +78,6 @@ export async function submitShot(
     if (current.revision !== shot.revision)
       throw new Error(
         "Shot changed while preparing references. Review it and render again.",
-      );
-    if (currentStoryboard(p, current)?.assetId !== boardAssetId)
-      throw new Error(
-        "The storyboard changed while preparing the render. Read the current board before rendering.",
       );
     if (projectRatio(p) !== projectRatio(snapshot))
       throw new Error(

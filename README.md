@@ -26,7 +26,7 @@ MINIMAX_VIDEO_API_KEY=your_video_key
 MINIMAX_VIDEO_MODEL=MiniMax-H3
 ```
 
-Storyboards also require Image-01 access. They use the video key by default; set `MINIMAX_IMAGE_API_KEY` separately if needed and keep `MINIMAX_IMAGE_MODEL=image-01`. Having a key does not guarantee access to every model.
+Only text and video model access is required. Storyboarding uses a written shot plan; there is no image-generation step or image-model key to configure.
 
 ```sh
 npm run dev
@@ -38,7 +38,6 @@ Open [the studio](http://127.0.0.1:3000). The app binds to loopback. Restart aft
 | --- | --- |
 | Director and specialists | `MINIMAX_TEXT_API_KEY`, `MINIMAX_TEXT_MODEL` |
 | Video generation | `MINIMAX_VIDEO_API_KEY`, `MINIMAX_VIDEO_MODEL` |
-| Visual storyboards | Video key with Image-01 access, or `MINIMAX_IMAGE_API_KEY` |
 | Optional X discovery/import | `X_API_BEARER_TOKEN` or `TWITTERAPI_IO_API_KEY`; select with `X_SEARCH_PROVIDER` |
 | Optional broader web research | `EXA_API_KEY` |
 | Optional local TikTok import | Python 3, then `npm run setup:video-import` |
@@ -104,7 +103,7 @@ Default MP4 exports are clean footage with the chosen soundtrack. For an exact s
 5. Unlock only the shot you want revised, then give a note with that shot selected. Compare the new take to the accepted take and accept it when ready.
 6. Assign your real opening footage with **Use footage**. Once every source/generated shot has an accepted take, **Export film** assembles the film into a downloadable 1080p MP4. The final export uses only your requested, supplied branding. Download the last export from **Activity** or preview it with **Play last export**.
 
-New campaigns have empty prompts and neutral scene slots until you describe your campaign. After planning, the director generates a real MiniMax Image-01 storyboard image for each new scene, displayed before H3 footage. Each current board image is sent to H3 as a visual reference; old boards are marked when the plan changes. Ask for “storyboards only” to stop before paid video generation, then continue from the same conversation. Image generation uses `MINIMAX_IMAGE_API_KEY` if set, otherwise the video key, and defaults to `MINIMAX_IMAGE_MODEL=image-01`. The API must grant image access to that key. Images are stored with other media in local storage or private Blob, not left on expiring provider URLs. There are no simulated model responses or fake generation jobs.
+New campaigns have empty prompts and neutral scene slots until you describe your campaign. The director writes the shot sequence, then renders directly with H3 using the selected footage and supplied brand/character images. Ask for “storyboard only” or “plan only” to stop at the written plan before paid video generation, then continue in the same conversation. No generated planning images are created or automatically sent to H3. Historical storyboard images remain stored but do not block or guide new renders. There are no simulated model responses or fake generation jobs.
 
 ## What is implemented
 
@@ -116,7 +115,7 @@ New campaigns have empty prompts and neutral scene slots until you describe your
 - H3 V2 submission, persisted provider task IDs and durable polling through `defineWorkflowTool`.
 - Local media uploads, metadata validation, reference encoding and four-frame visual inspection.
 - SQLite transactions and local media for development; Neon transactions and private Blob media for hosted studios.
-- Image-01 storyboards passed into H3, and FFmpeg assembly with normalized video/audio, optional supplied-logo overlays, versioned portrait/widescreen exports and range-served playback.
+- Written shot planning followed by H3 generation, and FFmpeg assembly with normalized video/audio, optional supplied-logo overlays, versioned portrait/widescreen exports and range-served playback.
 
 ## Reliability and limits
 

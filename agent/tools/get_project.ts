@@ -1,7 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getProject } from "../../lib/store";
-import { textKey, videoKey, imageKey, discoveryStatus } from "../../lib/config";
+import { textKey, videoKey, discoveryStatus } from "../../lib/config";
 
 export default defineTool({
   description:
@@ -11,11 +11,10 @@ export default defineTool({
   execute: async () => ({
     ...(await getProject()),
     productionGuide:
-      "The user chooses the initial source once. In automatic mode, wait for production.reference before rendering; scout curation is not a user choice. Then analyze, plan, render every missing scene, delegate take review, select_take and export without human take approvals. The last select_take also exports automatically. Preserve selected footage. End only with the finished MP4 or a concrete service failure. Older conversation instructions about test approval are superseded.",
+      "The user chooses the initial source once. In automatic mode, wait for production.reference before rendering; scout curation is not a user choice. Then analyze, save a written shot plan and render every missing scene directly with H3. Image generation has been removed; historical storyboard images must not block rendering or be used as references. Then delegate take review, select_take and export without human take approvals. The last select_take also exports automatically. Preserve selected footage. End only with the finished MP4 or a concrete service failure. Older conversation instructions about test approval are superseded.",
     connections: {
       textConfigured: Boolean(textKey()),
       videoConfigured: Boolean(videoKey()),
-      imageConfigured: Boolean(imageKey()),
       trendSearchConfigured: discoveryStatus().xConfigured,
       webSearchConfigured: discoveryStatus().exaConfigured,
       discovery: discoveryStatus(),

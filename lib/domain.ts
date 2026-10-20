@@ -57,6 +57,7 @@ export type Shot = ShotInput & {
   acceptedTakeId?: string;
   revisionRequestedAt?: string;
 };
+/** Legacy image-board receipts retained for existing project history. */
 export type StoryboardFrame = {
   id: string;
   signature: string;
@@ -316,21 +317,6 @@ export function planUsesCurrentSources(
 
 export function projectRatio(project: Project) {
   return project.campaign?.ratio || "16:9";
-}
-
-export function currentStoryboard(project: Project, shot: Shot) {
-  const frame = project.storyboards?.findLast(
-    (entry) => entry.shotId === shot.id,
-  );
-  if (
-    frame &&
-    frame.shotRevision === shot.revision &&
-    frame.ratio === projectRatio(project) &&
-    frame.status === "ready" &&
-    project.assets.some((asset) => asset.id === frame.assetId) &&
-    planUsesCurrentSources(project, shot)
-  )
-    return frame;
 }
 
 export function requireEditableShot(project: Project, id: string) {
