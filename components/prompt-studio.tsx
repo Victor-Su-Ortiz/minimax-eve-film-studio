@@ -961,8 +961,13 @@ function PromptWorkspace({
                         ? "Silent cut"
                         : cut.soundtrack?.mode === "source"
                           ? `Original reference audio · ${cut.audioCheck.playback === "loop" ? "Looped" : "Plays once"}`
-                          : "Instrumental score"}{" "}
-                      · H3 audio removed
+                          : cut.soundtrack?.mode === "native"
+                            ? !cut.audioCheck.hasAudio
+                              ? "No audio in selected footage"
+                              : `Original take audio${cut.audioCheck.silentShotIds?.length ? " · Some scenes have no audio" : ""}`
+                            : "Local synthesized score"}
+                      {cut.soundtrack?.mode !== "native" &&
+                        " · H3 audio removed"}
                     </>
                   )}
                 </p>

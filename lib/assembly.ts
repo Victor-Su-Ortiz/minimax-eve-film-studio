@@ -20,6 +20,7 @@ import { sourceLengthEdit } from "./edit";
 import { applyShotEdits } from "./shot-edit";
 import { exportStyleInput, type ExportStyle } from "./export-style";
 import { customBranding, prepareLogoLayer } from "./brand";
+import { assembleNativeAudio } from "./native-audio";
 
 const exec = promisify(execFile);
 export async function assembleCut(options?: ExportStyle) {
@@ -91,7 +92,7 @@ export async function assembleCut(options?: ExportStyle) {
         visualSignature,
         soundtrack,
         sourceAudio: sourceAudio?.asset.sha256,
-        version: `${SCORE_VERSION}:source-audio-v1`,
+        version: `${SCORE_VERSION}:source-audio-v1:native-audio-v1`,
       }),
     )
     .digest("hex");
@@ -116,6 +117,18 @@ export async function assembleCut(options?: ExportStyle) {
   const temporary = path.join(dataDir(), `cut-${id}`);
   await mkdir(temporary, { recursive: true });
   try {
+    const nativeAudio =
+      soundtrack.mode === "native"
+        ? await assembleNativeAudio(
+            inputs.map(({ shot, assetId, start }) => ({
+              shotId: shot.id,
+              assetId: assetId!,
+              start,
+              duration: shot.duration,
+            })),
+            temporary,
+          )
+        : undefined;
     if (!pictureSource) {
       const logoLayer = branding
         ? await prepareLogoLayer(temporary, style.logoAssetId!, width, height)
@@ -269,6 +282,23 @@ export async function assembleCut(options?: ExportStyle) {
         "-af",
         `asetpts=PTS-STARTPTS,aresample=48000,afade=t=out:st=${audioEnd - fade}:d=${fade},apad`,
       );
+    } else if (nativeAudio?.file) {
+      args.push(
+        "-i",
+        nativeAudio.file,
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-ar",
+        "48000",
+      );
     } else {
       args.push("-map", "0:v:0", "-c:v", "copy", "-an");
     }
@@ -289,7 +319,10 @@ export async function assembleCut(options?: ExportStyle) {
     });
     const checked = await probe(mediaPath(assetId));
     if (
-      checked.hasAudio !== (soundtrack.mode !== "silent") ||
+      checked.hasAudio !==
+        (soundtrack.mode === "native"
+          ? Boolean(nativeAudio?.file)
+          : soundtrack.mode !== "silent") ||
       !checked.duration ||
       Math.abs(checked.duration - duration) > 0.15
     )
@@ -309,15 +342,33 @@ export async function assembleCut(options?: ExportStyle) {
       soundtrack,
       ...(edit ? { edit } : {}),
       audioCheck: {
-        sourceClipAudioIncluded: Boolean(sourceAudio),
-        generatedClipAudioIncluded: false,
+        sourceClipAudioIncluded:
+          Boolean(sourceAudio) ||
+          Boolean(
+            nativeAudio?.assetIds.some(
+              (id) => project.assets.find((a) => a.id === id)?.origin !== "h3",
+            ),
+          ),
+        generatedClipAudioIncluded: Boolean(
+          nativeAudio?.assetIds.some(
+            (id) => project.assets.find((a) => a.id === id)?.origin === "h3",
+          ),
+        ),
         method: sourceAudio
           ? "source-audio"
-          : soundtrack.mode === "silent"
-            ? "silent"
-            : "synthesized-instruments",
+          : nativeAudio
+            ? "native-audio"
+            : soundtrack.mode === "silent"
+              ? "silent"
+              : "synthesized-instruments",
         hasAudio: checked.hasAudio,
         duration: checked.duration,
+        ...(nativeAudio
+          ? {
+              nativeAudioAssetIds: nativeAudio.assetIds,
+              silentShotIds: nativeAudio.silentShotIds,
+            }
+          : {}),
         ...(sourceAudio
           ? {
               sourceAssetId: sourceAudio.asset.id,

@@ -1229,6 +1229,7 @@ test("three uploaded brand assets do not prevent importing and inspecting a chos
 });
 
 test("briefs persist, an actual MP4 exports, and range requests support playback", async () => {
+  await setSoundtrack({ mode: "instrumental", mood: "cinematic", tempo: 112 });
   const saved = await post({
     action: "brief",
     brief: "A verified launch brief.",
@@ -1305,6 +1306,58 @@ test("briefs persist, an actual MP4 exports, and range requests support playback
     await videoHash(mediaPath(cut.assetId)),
     "An audio-only repair must preserve every encoded video packet",
   );
+  await setSoundtrack({ mode: "native", mood: "cinematic", tempo: 112 });
+  const restored = (await (await post({ action: "export" })).json()).cut;
+  assert.equal(restored.audioCheck.method, "native-audio");
+  assert.deepEqual(
+    new Set(restored.audioCheck.nativeAudioAssetIds),
+    new Set([asset.id]),
+  );
+  assert.equal(
+    await videoHash(mediaPath(restored.assetId)),
+    await videoHash(mediaPath(cut.assetId)),
+    "Restoring native audio must reuse the exact encoded pictures",
+  );
+  const samples = async (file: string) =>
+    (
+      await exec(
+        binary("ffmpeg"),
+        [
+          "-v",
+          "error",
+          "-i",
+          file,
+          "-map",
+          "0:a:0",
+          "-t",
+          "1",
+          "-ac",
+          "1",
+          "-ar",
+          "8000",
+          "-f",
+          "f32le",
+          "-",
+        ],
+        { encoding: "buffer" },
+      )
+    ).stdout;
+  const actual = await samples(mediaPath(restored.assetId));
+  const original = await samples(mediaPath(asset.id));
+  let dot = 0,
+    aPower = 0,
+    bPower = 0;
+  for (let i = 800; i < 7000; i++) {
+    const a = actual.readFloatLE(i * 4),
+      b = original.readFloatLE(i * 4);
+    dot += a * b;
+    aPower += a * a;
+    bPower += b * b;
+  }
+  assert.ok(
+    dot / Math.sqrt(aPower * bPower) > 0.98,
+    "Native repair must recover the original audio waveform, not the cached export's score",
+  );
   await setSoundtrack({ mode: "instrumental", mood: "cinematic", tempo: 112 });
   await post({ action: "campaign", campaign: dancingDogsExample() });
   const portrait = await post({ action: "export" });
@@ -1314,7 +1367,7 @@ test("briefs persist, an actual MP4 exports, and range requests support playback
   const portraitMetadata = await probe(mediaPath(portraitCut.assetId));
   assert.equal(portraitMetadata.width, 1080);
   assert.equal(portraitMetadata.height, 1920);
-  assert.equal((await getProject()).cuts.length, 3);
+  assert.equal((await getProject()).cuts.length, 4);
   const range = await getMedia(
     new Request(`http://127.0.0.1:3000/api/media/${cut.assetId}`, {
       headers: { range: "bytes=0-99" },
@@ -1759,7 +1812,8 @@ test("one reference choice runs all reviewed takes through an automatic clean MP
   assert.equal(provider.submissions(), 4);
   assert.ok(exported, "The final selection must export automatically");
   assert.equal(exported.branding, undefined);
-  assert.equal(exported.audioCheck!.generatedClipAudioIncluded, false);
+  assert.equal(exported.audioCheck!.generatedClipAudioIncluded, true);
+  assert.equal(exported.audioCheck!.method, "native-audio");
   const metadata = await probe(mediaPath(exported.assetId));
   assert.equal(metadata.width, 1080);
   assert.equal(metadata.height, 1920);

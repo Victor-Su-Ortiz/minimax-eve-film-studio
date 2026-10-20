@@ -119,8 +119,11 @@ export type Cut = {
   soundtrack?: Soundtrack;
   audioCheck?: {
     sourceClipAudioIncluded: boolean;
-    generatedClipAudioIncluded?: false;
-    method: "synthesized-instruments" | "silent" | "source-audio";
+    generatedClipAudioIncluded?: boolean;
+    method:
+      "synthesized-instruments" | "silent" | "source-audio" | "native-audio";
+    nativeAudioAssetIds?: string[];
+    silentShotIds?: string[];
     hasAudio: boolean;
     duration: number;
     sourceAssetId?: string;
@@ -131,7 +134,9 @@ export type Cut = {
 };
 export const soundtrackInput = z
   .object({
-    mode: z.enum(["instrumental", "silent", "source"]).default("instrumental"),
+    mode: z
+      .enum(["native", "instrumental", "silent", "source"])
+      .default("native"),
     mood: z.enum(["cinematic", "playful"]).default("cinematic"),
     tempo: z.number().int().min(70).max(150).default(112),
     sourceAssetId: z.string().min(1).optional(),
@@ -167,7 +172,7 @@ export function projectSoundtrack(
 ): Soundtrack {
   return (
     project.soundtrack || {
-      mode: "instrumental",
+      mode: "native",
       mood: "cinematic",
       tempo: 112,
     }
@@ -263,7 +268,7 @@ export function initialProject(): Project {
     production: { mode: "automatic" },
     takeInspections: [],
     takeReviews: [],
-    soundtrack: { mode: "instrumental", mood: "cinematic", tempo: 112 },
+    soundtrack: { mode: "native", mood: "cinematic", tempo: 112 },
     campaign: undefined,
     campaignAnalyses: [],
     campaignInspections: [],

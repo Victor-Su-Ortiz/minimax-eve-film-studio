@@ -60,7 +60,9 @@ export async function setSoundtrack(input: Soundtrack) {
           ? `Use original audio from ${source.asset.name} (${soundtrack.playback === "loop" ? "looped" : "once"}); replace H3 shot audio`
           : soundtrack.mode === "silent"
             ? "Remove all audio from the final film"
-            : `Use one ${soundtrack.mood} instrumental score; remove all clip audio`,
+            : soundtrack.mode === "native"
+              ? "Keep the selected footage's own audio; leave missing audio silent"
+              : `Use one ${soundtrack.mood} instrumental score; remove all clip audio`,
       );
     }
     return soundtrack;
